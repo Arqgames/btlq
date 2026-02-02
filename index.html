@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="description" content="Bible Timeline Quiz is a free browser game where you arrange Bible events in chronological order. Supports Japanese and English." />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bible Timeline Quiz</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -481,12 +482,27 @@
 
         function checkOrder() {
             clearInterval(timerInterval);
-            const userIds = [...document.querySelectorAll('.event-card')].map(el => parseInt(el.dataset.id));
-            const correctIds = [...currentTask].sort((a, b) => a.year - b.year).map(e => e.id);
-            const isWin = JSON.stringify(userIds) === JSON.stringify(correctIds);
-            if (isWin) confetti({ particleCount: 150, spread: 70, origin: { x: 0.5, y: 0.5 } });
-            showResultScreen(isWin);
-        }
+
+        const userIds = [...document.querySelectorAll('.event-card')]
+            .map(el => parseInt(el.dataset.id));
+
+        const correctIds = [...currentTask]
+            .sort((a, b) => a.year - b.year)
+            .map(e => e.id);
+
+    const isWin = JSON.stringify(userIds) === JSON.stringify(correctIds);
+
+    if (isWin && window.confetti) {
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { x: 0.5, y: 0.5 }
+        });
+    }
+
+    showResultScreen(isWin);
+}
+
 
         function showResultScreen(isWin) {
             switchScreen('screen-result');
