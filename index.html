@@ -535,14 +535,36 @@
         function renderGame(shuffle) {
             const list = document.getElementById('event-list');
             list.innerHTML = '';
+
             let displayList = [...currentTask];
             if (shuffle) displayList.sort(() => 0.5 - Math.random());
+
             displayList.forEach(item => {
                 const el = document.createElement('div');
                 el.className = 'event-card';
                 el.dataset.id = item.id;
-                el.innerHTML = `<span class="material-icons drag-handle" aria-label="drag" style="color:#ccc">drag_indicator</span><div class="event-name" style="flex:1">${item[currentLang]}</div>`;
-                // ★スマホ：カード全体でドラッグ可能にする
+
+                el.innerHTML =
+                    `<span class="material-icons drag-handle" aria-label="drag" style="color:#ccc">drag_indicator</span>` +
+                    `<div class="event-name" style="flex:1">${item[currentLang]}</div>`;
+
+                /* ✅ PC用：HTML5ドラッグを復活 */
+                el.draggable = true;
+
+                el.addEventListener('dragstart', (e) => {
+                    el.classList.add('dragging');
+                    // Safari対策：dataTransferが空だとドラッグ開始しないことがある
+                    if (e.dataTransfer) {
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', el.dataset.id || '');
+                    }
+                });
+
+                el.addEventListener('dragend', () => {
+                    el.classList.remove('dragging');
+                });
+
+                /* ✅ スマホ：長押しタッチ */
                 el.ontouchstart = handleTouchStart;
                 el.ontouchmove = handleTouchMove;
                 el.ontouchend = handleTouchEnd;
@@ -550,6 +572,18 @@
 
                 list.appendChild(el);
             });
+
+            /* ✅ PC用：並び替え確定（これが無いと順序が変わらない） */
+            list.ondragover = (e) => {
+                e.preventDefault();
+
+                const draggingItem = document.querySelector('.event-card.dragging');
+                if (!draggingItem) return;
+
+                const afterElement = getDragAfterElement(list, e.clientY);
+                if (afterElement == null) list.appendChild(draggingItem);
+                else list.insertBefore(draggingItem, afterElement);
+            };
         }
 
         function getDragAfterElement(container, y) {
