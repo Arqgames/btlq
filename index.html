@@ -550,13 +550,6 @@
 
                 list.appendChild(el);
             });
-            list.ondragover = e => {
-                e.preventDefault();
-                const draggingItem = document.querySelector('.dragging');
-                const afterElement = getDragAfterElement(list, e.clientY);
-                if (afterElement == null) list.appendChild(draggingItem);
-                else list.insertBefore(draggingItem, afterElement);
-            };
         }
 
         function getDragAfterElement(container, y) {
@@ -677,10 +670,6 @@
                 // ★ スクロール検知はもう不要
                 detachPreMoveCancel();
                 activeItem.classList.add('dragging');
-
-                // 長押し待ちキャンセル監視を外す（保険）
-                document.removeEventListener('touchend', cancelLongPress);
-                document.removeEventListener('touchcancel', cancelLongPress);
 
                 /* ドラッグ中の指の動きを取りこぼさないため */
                 document.addEventListener('touchmove', handleTouchMove, { passive: false });
