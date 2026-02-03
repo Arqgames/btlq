@@ -533,98 +533,101 @@
         }
 
         function renderGame(shuffle) {
-            const list = document.getElementById('event-list');
-            list.innerHTML = '';
+    const list = document.getElementById('event-list');
+    list.innerHTML = '';
 
-            let displayList = [...currentTask];
-            if (shuffle) displayList.sort(() => 0.5 - Math.random());
+    let displayList = [...currentTask];
+    if (shuffle) displayList.sort(() => 0.5 - Math.random());
 
-            displayList.forEach(item => {
-                const el = document.createElement('div');
-                el.className = 'event-card';
-                el.dataset.id = item.id;
+    displayList.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'event-card';
+        el.dataset.id = item.id;
 
-                el.innerHTML =
-                    `<span class="material-icons drag-handle" aria-label="drag" style="color:#ccc">drag_indicator</span>` +
-                    `<div class="event-name" style="flex:1">${item[currentLang]}</div>`;
+        el.innerHTML =
+            `<span class="material-icons drag-handle" aria-label="drag" style="color:#ccc">drag_indicator</span>` +
+            `<div class="event-name" style="flex:1">${item[currentLang]}</div>`;
 
-                /* ✅ PC用：HTML5ドラッグを復活 */
-                el.draggable = true;
+        /* ✅ PC用：HTML5ドラッグ */
+        el.draggable = true;
 
-                el.addEventListener('dragstart', (e) => {
-                    el.classList.add('dragging');
+        el.addEventListener('dragstart', (e) => {
+            el.classList.add('dragging');
 
-                    // ✅ PC用：placeholder（点線の空き枠）を作って元の位置に置く
-                    const rect = el.getBoundingClientRect();
-                    if (!placeholder) {
-                        placeholder = document.createElement('div');
-                        placeholder.className = 'sortable-placeholder';
-                    }
-                    placeholder.style.height = rect.height + 'px';
-                    el.after(placeholder);
+            // ✅ placeholder（点線の空き枠）を「元の場所」に置く
+            const rect = el.getBoundingClientRect();
+            if (!placeholder) {
+                placeholder = document.createElement('div');
+                placeholder.className = 'sortable-placeholder';
+            }
+            placeholder.style.height = rect.height + 'px';
 
-                    // Safari対策：dataTransferが空だとドラッグ開始しないことがある
-                    if (e.dataTransfer) {
-                        e.dataTransfer.effectAllowed = 'move';
-                        e.dataTransfer.setData('text/plain', el.dataset.id || '');
-                    }
-                });
+            // 元のカード位置を placeholder に置き換える（スマホと同じ）
+            el.replaceWith(placeholder);
 
-                el.addEventListener('dragend', () => {
-                    el.classList.remove('dragging');
+            // ✅ ドラッグ中は元カードを非表示にする（複製に見えるのを防ぐ）
+            // ※ display:none を即時にやるとブラウザによってドラッグ開始が失敗するので setTimeout
+            setTimeout(() => {
+                el.style.display = 'none';
+            }, 0);
 
-                    // ✅ PC用：placeholder を消す
-                    if (placeholder && placeholder.parentNode) {
-                        placeholder.remove();
-                    }
-                    placeholder = null;
-                });
+            // Safari対策
+            if (e.dataTransfer) {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', el.dataset.id || '');
+            }
+        });
 
-                /* ✅ スマホ：長押しタッチ */
-                el.ontouchstart = handleTouchStart;
-                el.ontouchmove = handleTouchMove;
-                el.ontouchend = handleTouchEnd;
-                el.ontouchcancel = handleTouchEnd;
+        el.addEventListener('dragend', () => {
+            // ✅ 非表示を戻す
+            el.style.display = '';
+            el.classList.remove('dragging');
 
-                list.appendChild(el);
-            });
+            // ✅ placeholder を消す（保険）
+            if (placeholder && placeholder.parentNode) {
+                placeholder.remove();
+            }
+            placeholder = null;
+        });
 
-            /* ✅ PC用：並び替え確定（placeholder を動かす） */
-            list.ondragover = (e) => {
-                e.preventDefault();
+        /* ✅ スマホ：長押しタッチ */
+        el.ontouchstart = handleTouchStart;
+        el.ontouchmove = handleTouchMove;
+        el.ontouchend = handleTouchEnd;
+        el.ontouchcancel = handleTouchEnd;
 
-                const draggingItem = document.querySelector('.event-card.dragging');
-                if (!draggingItem) return;
+        list.appendChild(el);
+    });
 
-                // placeholder が無ければ作る（保険）
-                if (!placeholder) {
-                    placeholder = document.createElement('div');
-                    placeholder.className = 'sortable-placeholder';
-                }
+    /* ✅ PC用：placeholder を動かす */
+    list.ondragover = (e) => {
+        e.preventDefault();
 
-                const afterElement = getDragAfterElement(list, e.clientY);
-                if (afterElement == null) list.appendChild(placeholder);
-                else list.insertBefore(placeholder, afterElement);
-            };
+        if (!placeholder) return;
 
-            // ✅ PC用：ドロップ時に placeholder の位置へ確定配置
-            list.ondrop = (e) => {
-                e.preventDefault();
+        const afterElement = getDragAfterElement(list, e.clientY);
+        if (afterElement == null) list.appendChild(placeholder);
+        else list.insertBefore(placeholder, afterElement);
+    };
 
-                const draggingItem = document.querySelector('.event-card.dragging');
-                if (!draggingItem) return;
+    /* ✅ PC用：ドロップで placeholder の位置に確定 */
+    list.ondrop = (e) => {
+        e.preventDefault();
 
-                if (placeholder && placeholder.parentNode === list) {
-                    placeholder.replaceWith(draggingItem);
-                }
+        const draggingItem = document.querySelector('.event-card.dragging');
+        if (!draggingItem) return;
 
-                // 後始末（dragendでも消すが保険）
-                if (placeholder && placeholder.parentNode) {
-                    placeholder.remove();
-                }
-                placeholder = null;
-            };
+        // placeholder の位置に戻す
+        if (placeholder && placeholder.parentNode === list) {
+            list.insertBefore(draggingItem, placeholder);
+            placeholder.remove();
         }
+        placeholder = null;
+
+        // 表示復帰（drop の時点で戻しておく。dragendでも戻るが保険）
+        draggingItem.style.display = '';
+    };
+}
 
         function getDragAfterElement(container, y) {
             const draggableElements = [...container.querySelectorAll('.event-card:not(.dragging)')];
