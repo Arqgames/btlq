@@ -540,11 +540,8 @@
             displayList.forEach(item => {
                 const el = document.createElement('div');
                 el.className = 'event-card';
-                el.draggable = true;
                 el.dataset.id = item.id;
                 el.innerHTML = `<span class="material-icons drag-handle" aria-label="drag" style="color:#ccc">drag_indicator</span><div class="event-name" style="flex:1">${item[currentLang]}</div>`;
-                el.addEventListener('dragstart', () => el.classList.add('dragging'));
-                el.addEventListener('dragend', () => el.classList.remove('dragging'));
                 // ★スマホ：カード全体でドラッグ可能にする
                 el.ontouchstart = handleTouchStart;
                 el.ontouchmove = handleTouchMove;
