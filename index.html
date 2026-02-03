@@ -550,6 +550,7 @@
                     handle.ontouchstart = handleTouchStart;
                     handle.ontouchmove = handleTouchMove;
                     handle.ontouchend = handleTouchEnd;
+                    handle.ontouchcancel = handleTouchEnd;
                 }
                 list.appendChild(el);
             });
@@ -573,73 +574,94 @@
         }
 
         let activeItem = null;
-        /* 並び替え中に表示するプレースホルダ要素 */
         let placeholder = null;
+
+        /* 指の位置とカード左上の差分（追従用） */
         let dragOffsetX = 0;
         let dragOffsetY = 0;
 
+        /* 追従を滑らかにするための rAF 制御 */
+        let rafId = null;
+        let pendingX = 0;
+        let pendingY = 0;
+
         function handleTouchStart(e) {
-            /* ==========================================================
-              ②方式：ハンドルを触ったときだけドラッグ開始
-              - this は .drag-handle（≡アイコン）なので、親の .event-card を拾う
-            ========================================================== */
+            const touch = e.touches[0];
+
+            /* handle から card を特定 */
             activeItem = this.closest('.event-card');
             if (!activeItem) return;
 
-            /* ==========================================================
-              プレースホルダ生成（なければ作る）
-              - 同じ高さ/余白にして、元の位置を確保する
-              - activeItem の直前に挿入する（見た目上「ここにあった」を残す）
-            ========================================================== */
-            if (!placeholder) {
-                placeholder = document.createElement('div');
-                placeholder.className = 'sortable-placeholder';
-            }
-
-            /* activeItem のサイズを元にプレースホルダの高さを合わせる */
+            /* 追従のための初期情報 */
             const rect = activeItem.getBoundingClientRect();
+            dragOffsetX = touch.clientX - rect.left;
+            dragOffsetY = touch.clientY - rect.top;
+
+            /* 1) placeholder を作って「元の場所」を保持 */
+            placeholder = document.createElement('div');
+            placeholder.className = 'sortable-placeholder';
             placeholder.style.height = rect.height + 'px';
+            placeholder.style.margin = '12px 0';
 
-            /* 余白（margin）も合わせる：上下だけ合わせれば見た目が崩れにくい */
-            const cs = window.getComputedStyle(activeItem);
-            placeholder.style.marginTop = cs.marginTop;
-            placeholder.style.marginBottom = cs.marginBottom;
+            activeItem.after(placeholder);
 
-            /* すでに別場所に入っていたら一旦外してから差し込む */
-            if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+            /* 2) activeItem を「見た目だけ」浮かせて追従させる */
+            activeItem.classList.add('dragging');
+            activeItem.style.position = 'fixed';
+            activeItem.style.left = '0px';
+            activeItem.style.top = '0px';
+            activeItem.style.width = rect.width + 'px';
+            activeItem.style.zIndex = '9999';
+            activeItem.style.pointerEvents = 'none'; /* elementFromPoint の邪魔をしない */
+            activeItem.style.margin = '0';
 
-            /* 元の位置にプレースホルダを差し込む（activeItem の位置を確保） */
-            activeItem.before(placeholder);
+            /* 初期位置へ */
+            pendingX = touch.clientX - dragOffsetX;
+            pendingY = touch.clientY - dragOffsetY;
+            activeItem.style.transform = `translate3d(${pendingX}px, ${pendingY}px, 0)`;
 
-            /* 見た目：ドラッグ中のカードを少し薄くする（追従はあなたの既存処理に任せる） */
-            activeItem.style.opacity = "0.85";
+            /* 余計なスクロール抑制（ドラッグ中の暴発防止） */
+            e.preventDefault();
         }
-
 
         function handleTouchMove(e) {
             if (!activeItem) return;
 
-            /* ==========================================================
-              スクロール抑制（ドラッグ操作を優先）
-              ※「スクロールしたいのに動く問題はない」とのことなので
-                ここはこのままでOK
-            ========================================================== */
             e.preventDefault();
 
             const touch = e.touches[0];
+
+            /* ==========================================================
+              1) 見た目：カードを指に追従（rAFでカクつき軽減）
+            ========================================================== */
+            pendingX = touch.clientX - dragOffsetX;
+            pendingY = touch.clientY - dragOffsetY;
+
+            if (!rafId) {
+                rafId = requestAnimationFrame(() => {
+                    if (activeItem) {
+                        activeItem.style.transform = `translate3d(${pendingX}px, ${pendingY}px, 0)`;
+                    }
+                    rafId = null;
+                });
+            }
+
+            /* ==========================================================
+              2) 並び替え：指の下のカードに応じて placeholder を移動
+            ========================================================== */
+
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
             const card = target ? target.closest('.event-card') : null;
 
-            /* ==========================================================
-              指の下がカードなら、上下どちらにプレースホルダを入れるか決める
-              - card が activeItem 自身なら何もしない
-              - card が placeholder 自体なら何もしない（念のため）
-            ========================================================== */
-            if (!card || card === activeItem || card === placeholder) return;
+            /* 指の下がカードじゃない / 自分自身 / placeholder 位置なら何もしない */
+            if (!card) return;
+
+            /* activeItem は pointerEvents:none なので基本ここには来ないが念のため */
+            if (card === activeItem) return;
 
             const rect = card.getBoundingClientRect();
 
-            /* 指がカードの上半分なら「前」、下半分なら「後」にプレースホルダを移動 */
+            /* 上半分なら前、下半分なら後に placeholder */
             if (touch.clientY < rect.top + rect.height / 2) {
                 card.before(placeholder);
             } else {
@@ -647,37 +669,41 @@
             }
         }
 
-
         function handleTouchEnd() {
             if (!activeItem) return;
+
+            /* ★ ① requestAnimationFrame を止める（残像・カクつき防止） */
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
 
             const list = document.getElementById('event-list');
 
             /* ==========================================================
               1) placeholder が残っていれば、その位置に activeItem を確定配置
-                 - placeholder の「直後」に activeItem を入れる
-                 - その後 placeholder は削除
             ========================================================== */
             if (placeholder && list && list.contains(placeholder)) {
-                placeholder.after(activeItem);
-                placeholder.remove();
+                placeholder.replaceWith(activeItem); // ★ ② after + remove は不要
                 placeholder = null;
             }
 
             /* ==========================================================
-              2) 見た目を元に戻す
+              2) 見た目を完全に元に戻す
             ========================================================== */
+            activeItem.classList.remove('dragging'); // ★ ③ これ重要
             activeItem.style.position = '';
             activeItem.style.left = '';
             activeItem.style.top = '';
             activeItem.style.width = '';
             activeItem.style.zIndex = '';
             activeItem.style.pointerEvents = '';
-            activeItem.style.opacity = "1";
+            activeItem.style.margin = '';
+            activeItem.style.transform = '';          // ★ 残像の原因
+            activeItem.style.opacity = '1';
 
             activeItem = null;
         }
-
 
         function checkOrder() {
             clearInterval(timerInterval);
