@@ -617,6 +617,10 @@
                 if (!activeItem) return;
 
                 isDragging = true;
+                document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                document.addEventListener('touchend', handleTouchEnd, { passive: false });
+                document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
 
                 // 追従用のオフセット計算（カード左上との差分）
                 const rect = activeItem.getBoundingClientRect();
@@ -732,8 +736,20 @@
             activeItem.style.margin = '';
             activeItem.style.transform = '';          // ★ 残像の原因
             activeItem.style.opacity = '1';
-
             activeItem = null;
+
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('touchend', handleTouchEnd);
+            document.removeEventListener('touchcancel', handleTouchEnd);
+
+            isDragging = false;
+
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+
+
         }
 
         function checkOrder() {
