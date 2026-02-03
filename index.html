@@ -584,84 +584,103 @@
         let pendingX = 0;
         let pendingY = 0;
 
-        function handleTouchStart(e) {
-            const touch = e.touches[0];
+        /* ==========================================================
+        長押しドラッグ（スクロール優先）
+        ========================================================== */
+        let pressTimer = null;      // 長押し判定のタイマーID
+        let isDragging = false;     // 長押し成立後だけ true
+        let startX = 0;             // 長押し前の「動いた判定」用
+        let startY = 0;
 
-            /* handle から card を特定 */
-            activeItem = this; // elに付けるならこれでもOK
+        const LONG_PRESS_MS = 200;          // 長押し時間（おすすめ 200ms）
+        const CANCEL_MOVE_THRESHOLD = 10;   // これ以上動いたら「スクロールのつもり」と判断して長押しをキャンセル（px）
+
+        function handleTouchStart(e) {
+            // ここではまだドラッグ開始しない（スクロール優先）
+            isDragging = false;
+
+            // カードを掴んだ扱いにする（event-card から呼ばれても安全）
+            activeItem = this.closest('.event-card');
             if (!activeItem) return;
 
-            /* 追従のための初期情報 */
-            const rect = activeItem.getBoundingClientRect();
-            dragOffsetX = touch.clientX - rect.left;
-            dragOffsetY = touch.clientY - rect.top;
+            // 初期タッチ位置（動いたら長押しキャンセルするため）
+            const touch = e.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY;
 
-            /* 1) placeholder を作って「元の場所」を保持 */
-            placeholder = document.createElement('div');
-            placeholder.className = 'sortable-placeholder';
-            placeholder.style.height = rect.height + 'px';
-            placeholder.style.margin = '12px 0';
+            // 既存タイマーがあればクリア
+            if (pressTimer) clearTimeout(pressTimer);
 
-            activeItem.after(placeholder);
+            // 長押し成立したら「ここで初めてドラッグ開始」
+            pressTimer = setTimeout(() => {
+                // 指が離れていたり、activeItemが消えてたら無効
+                if (!activeItem) return;
 
-            /* 2) activeItem を「見た目だけ」浮かせて追従させる */
-            activeItem.classList.add('dragging');
-            activeItem.style.position = 'fixed';
-            activeItem.style.left = '0px';
-            activeItem.style.top = '0px';
-            activeItem.style.width = rect.width + 'px';
-            activeItem.style.zIndex = '9999';
-            activeItem.style.pointerEvents = 'none'; /* elementFromPoint の邪魔をしない */
-            activeItem.style.margin = '0';
+                isDragging = true;
 
-            /* 初期位置へ */
-            pendingX = touch.clientX - dragOffsetX;
-            pendingY = touch.clientY - dragOffsetY;
-            activeItem.style.transform = `translate3d(${pendingX}px, ${pendingY}px, 0)`;
+                // 追従用のオフセット計算（カード左上との差分）
+                const rect = activeItem.getBoundingClientRect();
+                dragOffsetX = startX - rect.left;
+                dragOffsetY = startY - rect.top;
 
-            /* 余計なスクロール抑制（ドラッグ中の暴発防止） */
-            e.preventDefault();
+                // placeholder がまだ無ければ作る（あなたの既存仕様に合わせる）
+                if (!placeholder) {
+                    placeholder = document.createElement('div');
+                    placeholder.className = 'sortable-placeholder';
+                }
+
+                // placeholder を元の位置に挿入して、カードは浮かせる
+                activeItem.after(placeholder);
+
+                // 見た目：ドラッグ中スタイル（あなたがすでにやってるならOK）
+                activeItem.style.opacity = "0.9";
+                activeItem.style.position = "fixed";
+                activeItem.style.zIndex = "9999";
+                activeItem.style.pointerEvents = "none";
+                activeItem.style.width = rect.width + "px";
+
+                // 最初の位置更新（指に追従）
+                moveDraggedItem(startX, startY);
+            }, LONG_PRESS_MS);
         }
 
         function handleTouchMove(e) {
             if (!activeItem) return;
 
-            e.preventDefault();
-
             const touch = e.touches[0];
+            const x = touch.clientX;
+            const y = touch.clientY;
 
-            /* ==========================================================
-              1) 見た目：カードを指に追従（rAFでカクつき軽減）
-            ========================================================== */
-            pendingX = touch.clientX - dragOffsetX;
-            pendingY = touch.clientY - dragOffsetY;
+            // まだ長押し成立してない → スクロール優先
+            if (!isDragging) {
+                // 少しでも動いたら「スクロールするつもり」とみなして長押しキャンセル
+                const dx = x - startX;
+                const dy = y - startY;
+                const dist = Math.hypot(dx, dy);
 
-            if (!rafId) {
-                rafId = requestAnimationFrame(() => {
-                    if (activeItem) {
-                        activeItem.style.transform = `translate3d(${pendingX}px, ${pendingY}px, 0)`;
+                if (dist > CANCEL_MOVE_THRESHOLD) {
+                    if (pressTimer) {
+                        clearTimeout(pressTimer);
+                        pressTimer = null;
                     }
-                    rafId = null;
-                });
+                }
+                return; // ここで終わり（スクロールを邪魔しない）
             }
 
-            /* ==========================================================
-              2) 並び替え：指の下のカードに応じて placeholder を移動
-            ========================================================== */
+            // ここから下はドラッグ中
+            e.preventDefault();
 
-            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            // 追従（rAFで滑らかに動かすあなたの仕組みを使う）
+            moveDraggedItem(x, y);
+
+            // 指の下の要素から「挿入先」を決めて placeholder を移動
+            const target = document.elementFromPoint(x, y);
             const card = target ? target.closest('.event-card') : null;
 
-            /* 指の下がカードじゃない / 自分自身 / placeholder 位置なら何もしない */
-            if (!card) return;
-
-            /* activeItem は pointerEvents:none なので基本ここには来ないが念のため */
-            if (card === activeItem) return;
+            if (!card || card === activeItem || card === placeholder) return;
 
             const rect = card.getBoundingClientRect();
-
-            /* 上半分なら前、下半分なら後に placeholder */
-            if (touch.clientY < rect.top + rect.height / 2) {
+            if (y < rect.top + rect.height / 2) {
                 card.before(placeholder);
             } else {
                 card.after(placeholder);
@@ -669,6 +688,19 @@
         }
 
         function handleTouchEnd() {
+            // 長押し待ちタイマーを止める
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+
+            // そもそもドラッグ開始してなかった（ただのタップ or スクロール）なら終了
+            if (!isDragging) {
+                activeItem = null;
+                return;
+            }
+
+            isDragging = false;
             if (!activeItem) return;
 
             /* ★ ① requestAnimationFrame を止める（残像・カクつき防止） */
