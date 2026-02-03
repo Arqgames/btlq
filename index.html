@@ -617,33 +617,53 @@
                 if (!activeItem) return;
 
                 isDragging = true;
+
+                /* ==========================================================
+                  document 監視（ドラッグ中の指の動きを取りこぼさないため）
+                  - passive:false で preventDefault を効かせる
+                ========================================================== */
                 document.addEventListener('touchmove', handleTouchMove, { passive: false });
                 document.addEventListener('touchend', handleTouchEnd, { passive: false });
                 document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
-
-                // 追従用のオフセット計算（カード左上との差分）
+                /* ==========================================================
+                  追従用のオフセット計算（カード左上との差分）
+                ========================================================== */
                 const rect = activeItem.getBoundingClientRect();
                 dragOffsetX = startX - rect.left;
                 dragOffsetY = startY - rect.top;
 
-                // placeholder がまだ無ければ作る（あなたの既存仕様に合わせる）
+                /* ==========================================================
+                  placeholder を用意（無ければ作る）
+                  - 高さを「元のカード」と同じにして、並びがガタつかないようにする
+                ========================================================== */
                 if (!placeholder) {
                     placeholder = document.createElement('div');
                     placeholder.className = 'sortable-placeholder';
                 }
+                placeholder.style.height = rect.height + "px";
 
-                // placeholder を元の位置に挿入して、カードは浮かせる
+                /* ==========================================================
+                  重要：activeItem を消さない / replaceWith しない
+                  - “場所確保”として placeholder を「直後」に差し込むだけ
+                ========================================================== */
                 activeItem.after(placeholder);
 
-                // 見た目：ドラッグ中スタイル（あなたがすでにやってるならOK）
-                activeItem.style.opacity = "0.9";
+                /* ==========================================================
+                  見た目：ドラッグ中スタイル
+                  - fixed にする前に「幅/高さ」を固定して崩れ防止
+                  - pointerEvents:none で下の要素判定（elementFromPoint）を邪魔しない
+                ========================================================== */
+                activeItem.style.width = rect.width + "px";
+                activeItem.style.height = rect.height + "px";
                 activeItem.style.position = "fixed";
                 activeItem.style.zIndex = "9999";
                 activeItem.style.pointerEvents = "none";
-                activeItem.style.width = rect.width + "px";
+                activeItem.style.opacity = "0.9";
 
-                // 最初の位置更新（指に追従）
+                /* ==========================================================
+                  最初の位置更新（指に追従）
+                ========================================================== */
                 moveDraggedItem(startX, startY);
             }, LONG_PRESS_MS);
         }
