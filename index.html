@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="description" content="Bible Timeline Quiz is a free browser game where you arrange Bible events in chronological order. Supports Japanese and English." />
+    <meta name="description"
+        content="Bible Timeline Quiz is a free browser game where you arrange Bible events in chronological order. Supports Japanese and English." />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bible Timeline Quiz</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -20,7 +21,8 @@
             font-family: 'Hiragino Kaku Gothic ProN', sans-serif;
             /* 背景色に加えて、質感を出すための設定 */
             background-color: var(--main-bg);
-            background-image: url('https://www.transparenttextures.com/patterns/papyrus.png'); /* パピルス風の質感 */
+            background-image: url('https://www.transparenttextures.com/patterns/papyrus.png');
+            /* パピルス風の質感 */
             background-attachment: fixed;
             margin: 0;
             padding: 20px 0;
@@ -239,18 +241,27 @@
             <h1 data-ja="聖書年表クイズ" data-en="Bible Timeline Quiz">聖書年表クイズ</h1>
 
             <div class="quick-btn-container">
-                <button class="q-btn full" onclick="quickSet(-4026, 98, this)" data-ja="全期間" data-en="All Periods">全期間</button>
-                <button class="q-btn" onclick="quickSet(-4026, -2370, this)" data-ja="人類初期" data-en="Early Human">人類初期</button>
-                <button class="q-btn" onclick="quickSet(-2018, -1513, this)" data-ja="族長時代" data-en="Patriarchs">族長時代</button>
-                <button class="q-btn" onclick="quickSet(-1513, -1070, this)" data-ja="イスラエル征服" data-en="Conquest">イスラエル征服</button>
-                <button class="q-btn" onclick="quickSet(-1070, -607, this)" data-ja="王国の盛衰" data-en="Kings">王国の盛衰</button>
-                <button class="q-btn" onclick="quickSet(-607, -2, this)" data-ja="捕囚・再建" data-en="Exile & Return">捕囚・再建</button>
-                <button class="q-btn" onclick="quickSet(-2, 98, this)" data-ja="キリスト・使徒" data-en="Jesus & Apostles">キリスト・使徒</button>
+                <button class="q-btn full" onclick="quickSet(-4026, 98, this)" data-ja="全期間"
+                    data-en="All Periods">全期間</button>
+                <button class="q-btn" onclick="quickSet(-4026, -2370, this)" data-ja="人類初期"
+                    data-en="Early Human">人類初期</button>
+                <button class="q-btn" onclick="quickSet(-2018, -1513, this)" data-ja="族長時代"
+                    data-en="Patriarchs">族長時代</button>
+                <button class="q-btn" onclick="quickSet(-1513, -1070, this)" data-ja="イスラエル征服"
+                    data-en="Conquest">イスラエル征服</button>
+                <button class="q-btn" onclick="quickSet(-1070, -607, this)" data-ja="王国の盛衰"
+                    data-en="Kings">王国の盛衰</button>
+                <button class="q-btn" onclick="quickSet(-607, -2, this)" data-ja="捕囚・再建"
+                    data-en="Exile & Return">捕囚・再建</button>
+                <button class="q-btn" onclick="quickSet(-2, 98, this)" data-ja="キリスト・使徒"
+                    data-en="Jesus & Apostles">キリスト・使徒</button>
             </div>
 
             <div class="picker-group">
-                <div class="picker-column"><span style="font-size:0.75em; font-weight:bold;" data-ja="開始" data-en="Start">開始</span><select id="select-start"></select></div>
-                <div class="picker-column"><span style="font-size:0.75em; font-weight:bold;" data-ja="終了" data-en="End">終了</span><select id="select-end"></select></div>
+                <div class="picker-column"><span style="font-size:0.75em; font-weight:bold;" data-ja="開始"
+                        data-en="Start">開始</span><select id="select-start"></select></div>
+                <div class="picker-column"><span style="font-size:0.75em; font-weight:bold;" data-ja="終了"
+                        data-en="End">終了</span><select id="select-end"></select></div>
             </div>
 
             <select id="count-select" style="width:100%; margin-top:15px;">
@@ -284,7 +295,8 @@
                 <button class="btn" onclick="showHint()" data-ja="ヒント" data-en="Hint">ヒント</button>
                 <button class="btn btn-sub" onclick="retryThisTask()" data-ja="再挑戦" data-en="Retry">再挑戦</button>
             </div>
-            <div id="success-options" class="hidden"><button class="btn" onclick="location.reload()" data-ja="次へ" data-en="Next">次へ</button></div>
+            <div id="success-options" class="hidden"><button class="btn" onclick="location.reload()" data-ja="次へ"
+                    data-en="Next">次へ</button></div>
         </div>
     </div>
 
@@ -348,14 +360,60 @@
             let parts = ref.split(' ');
             let bookEn = parts[0];
             let verse = parts[1] || "";
-            return (refMap[bookEn] || bookEn) + " " + verse;
+            return verse
+                ? (refMap[bookEn] || bookEn) + " " + verse
+                : (refMap[bookEn] || bookEn);
+        }
+
+        /* ==========================================================
+        言語の自動判定（初回アクセス時）
+        - 以前ユーザーが手動で選んだ言語があれば、それを優先する
+        - それが無ければ、ブラウザの言語設定を見て判定する
+        - ja（日本語）なら 'ja'
+        - それ以外は全部 'en'
+        ========================================================== */
+        function detectLanguage() {
+
+            /* localStorageに保存された言語があれば最優先で使う
+               （ユーザーが過去に「EN/JA」を押した結果を覚えておくため） */
+            const savedLang = localStorage.getItem('lang');
+            if (savedLang) {
+                currentLang = savedLang;
+                return;
+            }
+
+            /* ブラウザの言語設定を取得（例: "ja-JP", "en-US" など） */
+            const browserLang = navigator.language || navigator.userLanguage || '';
+
+            /* "ja" で始まるなら日本語扱い。そうでなければ英語 */
+            if (browserLang.toLowerCase().startsWith('ja')) {
+                currentLang = 'ja';
+            } else {
+                currentLang = 'en';
+            }
         }
 
         function toggleLang() {
+
+            /* JA ⇄ EN を切り替える */
             currentLang = currentLang === 'ja' ? 'en' : 'ja';
-            document.getElementById('lang-btn').innerText = currentLang === 'ja' ? 'JA' : 'EN';
-            document.querySelectorAll('[data-ja]').forEach(el => el.innerText = el.getAttribute('data-' + currentLang));
+
+            /* 次回アクセス時も同じ言語で開くために保存する */
+            localStorage.setItem('lang', currentLang);
+
+            /* ボタン表示を更新（今が日本語なら "JA"、英語なら "EN"） */
+            document.getElementById('lang-btn').innerText =
+                currentLang === 'ja' ? 'JA' : 'EN';
+
+            /* data-ja / data-en を持つ要素のテキストをまとめて差し替える */
+            document.querySelectorAll('[data-ja]').forEach(el => {
+                el.innerText = el.getAttribute('data-' + currentLang);
+            });
+
+            /* ゲーム画面のカード表示も今の言語で更新する */
             updateCardTexts();
+
+            /* 年代のセレクトなど、言語依存の表示を再構築する */
             initPickers();
         }
 
@@ -483,25 +541,25 @@
         function checkOrder() {
             clearInterval(timerInterval);
 
-        const userIds = [...document.querySelectorAll('.event-card')]
-            .map(el => parseInt(el.dataset.id));
+            const userIds = [...document.querySelectorAll('.event-card')]
+                .map(el => parseInt(el.dataset.id));
 
-        const correctIds = [...currentTask]
-            .sort((a, b) => a.year - b.year)
-            .map(e => e.id);
+            const correctIds = [...currentTask]
+                .sort((a, b) => a.year - b.year)
+                .map(e => e.id);
 
-    const isWin = JSON.stringify(userIds) === JSON.stringify(correctIds);
+            const isWin = JSON.stringify(userIds) === JSON.stringify(correctIds);
 
-    if (isWin && window.confetti) {
-        confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { x: 0.5, y: 0.5 }
-        });
-    }
+            if (isWin && window.confetti) {
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { x: 0.5, y: 0.5 }
+                });
+            }
 
-    showResultScreen(isWin);
-}
+            showResultScreen(isWin);
+        }
 
 
         function showResultScreen(isWin) {
@@ -578,7 +636,7 @@
             document.getElementById('hint-area').classList.add('hidden');
             renderGame(false);
             switchScreen('screen-game');
-            
+
             const isTimeAttack = document.getElementById('time-attack-select').value === 'on';
             if (isTimeAttack) {
                 const count = parseInt(document.getElementById('count-select').value);
@@ -603,7 +661,37 @@
             document.getElementById('screen-result').classList.add('hidden');
             document.getElementById(id).classList.remove('hidden');
         }
-        window.onload = () => { initPickers(); document.getElementById('select-start').value = -4026; document.getElementById('select-end').value = 98; };
+        /* ページを開いた瞬間にやること（初期化） */
+        window.onload = () => {
+
+            /* 1) ブラウザ言語 or 保存済み言語を見て currentLang を決める */
+            detectLanguage();
+
+            /* 2) 言語ボタン（JA/EN）の表示を currentLang に合わせる */
+            const langBtn = document.getElementById('lang-btn');
+            if (langBtn) {
+                langBtn.innerText = currentLang === 'ja' ? 'JA' : 'EN';
+            }
+
+            /* 3) data-ja / data-en の文言を currentLang の言語に切り替える
+                  ※ これをやらないと、HTMLに直書きされた初期表示のままになる */
+            document.querySelectorAll('[data-ja]').forEach(el => {
+                el.innerText = el.getAttribute('data-' + currentLang);
+            });
+
+            /* 4) 年代セレクト等を currentLang で描画する（BCE/CE表示も含む） */
+            initPickers();
+
+            /* 5) 初期の開始/終了をセット（select が存在するページだけ） */
+            const startSel = document.getElementById('select-start');
+            const endSel = document.getElementById('select-end');
+            if (startSel && endSel) {
+                startSel.value = -4026;
+                endSel.value = 98;
+            }
+        };
+
+
     </script>
 </body>
 
