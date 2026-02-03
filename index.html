@@ -575,6 +575,18 @@
         let activeItem = null;
         let placeholder = null;
 
+        /* 長押しドラッグ（スクロール優先） */
+        let pressTimer = null;
+        let isDragging = false;
+
+        /* タッチ開始位置（長押し成立前の移動判定用） */
+        let startX = 0;
+        let startY = 0;
+
+        /* 好みで調整OK */
+        const LONG_PRESS_MS = 200;          // 長押し時間
+        const CANCEL_MOVE_THRESHOLD = 10;   // これ以上動いたら長押しキャンセル（px）
+
         /* 指の位置とカード左上の差分（追従用） */
         let dragOffsetX = 0;
         let dragOffsetY = 0;
@@ -583,17 +595,6 @@
         let rafId = null;
         let pendingX = 0;
         let pendingY = 0;
-
-        /* ==========================================================
-        長押しドラッグ（スクロール優先）
-        ========================================================== */
-        let pressTimer = null;      // 長押し判定のタイマーID
-        let isDragging = false;     // 長押し成立後だけ true
-        let startX = 0;             // 長押し前の「動いた判定」用
-        let startY = 0;
-
-        const LONG_PRESS_MS = 200;          // 長押し時間（おすすめ 200ms）
-        const CANCEL_MOVE_THRESHOLD = 10;   // これ以上動いたら「スクロールのつもり」と判断して長押しをキャンセル（px）
 
         function handleTouchStart(e) {
             // ここではまだドラッグ開始しない（スクロール優先）
@@ -634,6 +635,7 @@
 
                 // ここでドラッグ開始
                 isDragging = true;
+                activeItem.classList.add('dragging');
 
                 // 長押し待ちキャンセル監視を外す（保険）
                 document.removeEventListener('touchend', cancelLongPress);
@@ -656,9 +658,12 @@
                 }
                 placeholder.style.height = rect.height + "px";
 
-                // ★元の場所を placeholder に置き換え、activeItem は直後に戻す（あなたの方式のままでOK）
+                // 元の場所を placeholder に置き換える（←これは必要）
                 activeItem.replaceWith(placeholder);
-                placeholder.after(activeItem);
+
+                // ★カードはリストに戻さず、body に退避させる
+                document.body.appendChild(activeItem);
+
 
                 /* 見た目：ドラッグ中スタイル */
                 activeItem.style.width = rect.width + "px";
@@ -667,6 +672,10 @@
                 activeItem.style.zIndex = "9999";
                 activeItem.style.pointerEvents = "none";
                 activeItem.style.opacity = "0.9";
+                activeItem.style.margin = "0";              // ★ズレ防止
+                activeItem.style.boxSizing = "border-box";  // ★念のため
+                activeItem.style.left = rect.left + "px";   // ★初期位置固定
+                activeItem.style.top = rect.top + "px";
 
                 /* 最初の位置更新（指に追従） */
                 moveDraggedItem(startX, startY);
@@ -674,6 +683,26 @@
                 // タイマーを使い捨てにする
                 pressTimer = null;
             }, LONG_PRESS_MS);
+        }
+
+        function moveDraggedItem(clientX, clientY) {
+            // 指の位置（pending）を更新
+            pendingX = clientX;
+            pendingY = clientY;
+
+            // すでに rAF が回ってるなら予約だけ更新して終わり
+            if (rafId) return;
+
+            rafId = requestAnimationFrame(() => {
+                rafId = null;
+                if (!activeItem) return;
+
+                const left = pendingX - dragOffsetX;
+                const top = pendingY - dragOffsetY;
+
+                activeItem.style.left = left + "px";
+                activeItem.style.top = top + "px";
+            });
         }
 
         function handleTouchMove(e) {
@@ -745,11 +774,14 @@
 
             const list = document.getElementById('event-list');
 
-            /* placeholder があれば、そこに activeItem を確定配置 */
             if (placeholder && list && list.contains(placeholder)) {
                 placeholder.replaceWith(activeItem);
                 placeholder = null;
+            } else if (list && activeItem) {
+                // 万一 placeholder が無い場合は末尾に戻す
+                list.appendChild(activeItem);
             }
+
 
             /* 見た目を完全に元に戻す */
             activeItem.classList.remove('dragging');
