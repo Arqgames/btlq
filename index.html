@@ -601,7 +601,7 @@
             isDragging = false;
 
             // カードを掴んだ扱いにする
-            activeItem = this.closest('.event-card');
+            activeItem = this;
             if (!activeItem) return;
 
             // 初期タッチ位置（動いたら長押しキャンセルするため）
