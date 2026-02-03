@@ -613,6 +613,9 @@
 
             // 長押し成立したら「ここで初めてドラッグ開始」
             pressTimer = setTimeout(() => {
+                // すでにドラッグ開始していたら二重開始しない
+                if (isDragging) return;
+
                 // 指が離れていたり、activeItemが消えてたら無効
                 if (!activeItem) return;
 
@@ -643,11 +646,9 @@
                 }
                 placeholder.style.height = rect.height + "px";
 
-                /* ==========================================================
-                  重要：activeItem を消さない / replaceWith しない
-                  - “場所確保”として placeholder を「直後」に差し込むだけ
-                ========================================================== */
-                activeItem.after(placeholder);
+                activeItem.replaceWith(placeholder);
+                placeholder.after(activeItem);
+
 
                 /* ==========================================================
                   見た目：ドラッグ中スタイル
