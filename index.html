@@ -599,7 +599,7 @@
             // ここではまだドラッグ開始しない（スクロール優先）
             isDragging = false;
 
-            // カードを掴んだ扱いにする（event-card から呼ばれても安全）
+            // カードを掴んだ扱いにする
             activeItem = this.closest('.event-card');
             if (!activeItem) return;
 
@@ -609,52 +609,58 @@
             startY = touch.clientY;
 
             // 既存タイマーがあればクリア
-            if (pressTimer) clearTimeout(pressTimer);
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+
+            // ★長押し待ち中に指が離れたら、必ずタイマーを止める（重要）
+            const cancelLongPress = () => {
+                if (!isDragging && pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
+                document.removeEventListener('touchend', cancelLongPress);
+                document.removeEventListener('touchcancel', cancelLongPress);
+            };
+            document.addEventListener('touchend', cancelLongPress, { passive: true });
+            document.addEventListener('touchcancel', cancelLongPress, { passive: true });
 
             // 長押し成立したら「ここで初めてドラッグ開始」
             pressTimer = setTimeout(() => {
-                // すでにドラッグ開始していたら二重開始しない
+                // ★ここに来た時点で、指が離れていたらキャンセルされているはずだが念のため
                 if (isDragging) return;
-
-                // 指が離れていたり、activeItemが消えてたら無効
                 if (!activeItem) return;
 
+                // ここでドラッグ開始
                 isDragging = true;
 
-                /* ==========================================================
-                  document 監視（ドラッグ中の指の動きを取りこぼさないため）
-                  - passive:false で preventDefault を効かせる
-                ========================================================== */
+                // 長押し待ちキャンセル監視を外す（保険）
+                document.removeEventListener('touchend', cancelLongPress);
+                document.removeEventListener('touchcancel', cancelLongPress);
+
+                /* ドラッグ中の指の動きを取りこぼさないため */
                 document.addEventListener('touchmove', handleTouchMove, { passive: false });
                 document.addEventListener('touchend', handleTouchEnd, { passive: false });
                 document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
-                /* ==========================================================
-                  追従用のオフセット計算（カード左上との差分）
-                ========================================================== */
+                /* 追従用のオフセット計算（カード左上との差分） */
                 const rect = activeItem.getBoundingClientRect();
                 dragOffsetX = startX - rect.left;
                 dragOffsetY = startY - rect.top;
 
-                /* ==========================================================
-                  placeholder を用意（無ければ作る）
-                  - 高さを「元のカード」と同じにして、並びがガタつかないようにする
-                ========================================================== */
+                /* placeholder を用意（無ければ作る） */
                 if (!placeholder) {
                     placeholder = document.createElement('div');
                     placeholder.className = 'sortable-placeholder';
                 }
                 placeholder.style.height = rect.height + "px";
 
+                // ★元の場所を placeholder に置き換え、activeItem は直後に戻す（あなたの方式のままでOK）
                 activeItem.replaceWith(placeholder);
                 placeholder.after(activeItem);
 
-
-                /* ==========================================================
-                  見た目：ドラッグ中スタイル
-                  - fixed にする前に「幅/高さ」を固定して崩れ防止
-                  - pointerEvents:none で下の要素判定（elementFromPoint）を邪魔しない
-                ========================================================== */
+                /* 見た目：ドラッグ中スタイル */
                 activeItem.style.width = rect.width + "px";
                 activeItem.style.height = rect.height + "px";
                 activeItem.style.position = "fixed";
@@ -662,10 +668,11 @@
                 activeItem.style.pointerEvents = "none";
                 activeItem.style.opacity = "0.9";
 
-                /* ==========================================================
-                  最初の位置更新（指に追従）
-                ========================================================== */
+                /* 最初の位置更新（指に追従） */
                 moveDraggedItem(startX, startY);
+
+                // タイマーを使い捨てにする
+                pressTimer = null;
             }, LONG_PRESS_MS);
         }
 
@@ -713,22 +720,24 @@
         }
 
         function handleTouchEnd() {
-            // 長押し待ちタイマーを止める
+            // 長押し待ちタイマーを止める（ここ1回だけでOK）
             if (pressTimer) {
                 clearTimeout(pressTimer);
                 pressTimer = null;
             }
 
-            // そもそもドラッグ開始してなかった（ただのタップ or スクロール）なら終了
+            // そもそもドラッグ開始してなかった（ただのタップ/スクロール）なら終了
             if (!isDragging) {
                 activeItem = null;
                 return;
             }
 
+            // ここから「ドラッグ終了」
             isDragging = false;
+
             if (!activeItem) return;
 
-            /* ★ ① requestAnimationFrame を止める（残像・カクつき防止） */
+            /* requestAnimationFrame を止める（残像・カクつき防止） */
             if (rafId) {
                 cancelAnimationFrame(rafId);
                 rafId = null;
@@ -736,41 +745,35 @@
 
             const list = document.getElementById('event-list');
 
-            /* ==========================================================
-              1) placeholder が残っていれば、その位置に activeItem を確定配置
-            ========================================================== */
+            /* placeholder があれば、そこに activeItem を確定配置 */
             if (placeholder && list && list.contains(placeholder)) {
-                placeholder.replaceWith(activeItem); // ★ ② after + remove は不要
+                placeholder.replaceWith(activeItem);
                 placeholder = null;
             }
 
-            /* ==========================================================
-              2) 見た目を完全に元に戻す
-            ========================================================== */
-            activeItem.classList.remove('dragging'); // ★ ③ これ重要
+            /* 見た目を完全に元に戻す */
+            activeItem.classList.remove('dragging');
+
             activeItem.style.position = '';
             activeItem.style.left = '';
             activeItem.style.top = '';
+            activeItem.style.right = '';
+            activeItem.style.bottom = '';
+
             activeItem.style.width = '';
+            activeItem.style.height = '';           // ★これ重要（Startで固定してるため）
             activeItem.style.zIndex = '';
             activeItem.style.pointerEvents = '';
             activeItem.style.margin = '';
-            activeItem.style.transform = '';          // ★ 残像の原因
+            activeItem.style.transform = '';
             activeItem.style.opacity = '1';
+
             activeItem = null;
 
+            // document 監視を解除
             document.removeEventListener('touchmove', handleTouchMove);
             document.removeEventListener('touchend', handleTouchEnd);
             document.removeEventListener('touchcancel', handleTouchEnd);
-
-            isDragging = false;
-
-            if (pressTimer) {
-                clearTimeout(pressTimer);
-                pressTimer = null;
-            }
-
-
         }
 
         function checkOrder() {
