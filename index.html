@@ -545,13 +545,12 @@
                 el.innerHTML = `<span class="material-icons drag-handle" aria-label="drag" style="color:#ccc">drag_indicator</span><div class="event-name" style="flex:1">${item[currentLang]}</div>`;
                 el.addEventListener('dragstart', () => el.classList.add('dragging'));
                 el.addEventListener('dragend', () => el.classList.remove('dragging'));
-                const handle = el.querySelector('.drag-handle');
-                if (handle) {
-                    handle.ontouchstart = handleTouchStart;
-                    handle.ontouchmove = handleTouchMove;
-                    handle.ontouchend = handleTouchEnd;
-                    handle.ontouchcancel = handleTouchEnd;
-                }
+                // ★スマホ：カード全体でドラッグ可能にする
+                el.ontouchstart = handleTouchStart;
+                el.ontouchmove = handleTouchMove;
+                el.ontouchend = handleTouchEnd;
+                el.ontouchcancel = handleTouchEnd;
+
                 list.appendChild(el);
             });
             list.ondragover = e => {
@@ -589,7 +588,7 @@
             const touch = e.touches[0];
 
             /* handle から card を特定 */
-            activeItem = this.closest('.event-card');
+            activeItem = this; // elに付けるならこれでもOK
             if (!activeItem) return;
 
             /* 追従のための初期情報 */
