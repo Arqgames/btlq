@@ -564,23 +564,57 @@
             showResultScreen(isWin);
         }
 
+        /* ==========================================================
+        結果画面の文言を currentLang に合わせて更新する
+        - toggleLang() からも呼ばれる
+        - 勝敗（lastIsWin）を元に表示を決める
+        ========================================================== */
+        function updateResultTexts() {
+            if (lastIsWin === null) return;
+
+            const difficulty =
+                parseInt(document.getElementById('count-select').value);
+
+            if (!lastIsWin && difficulty === 30) {
+                document.getElementById('result-title').innerText =
+                    currentLang === 'ja' ? "ゲームオーバー" : "Game Over";
+            } else {
+                document.getElementById('result-title').innerText = lastIsWin
+                    ? (currentLang === 'ja' ? "正解！" : "Correct!")
+                    : (currentLang === 'ja' ? "残念" : "Oops");
+            }
+        }
+
 
         function showResultScreen(isWin) {
+
+            /* 直前の勝敗を保存（言語切替時に再描画するため） */
+            lastIsWin = isWin;
+
             switchScreen('screen-result');
-            const difficulty = parseInt(document.getElementById('count-select').value);
+            const difficulty = parseInt(
+                document.getElementById('count-select').value
+            );
 
-            document.getElementById('result-title').innerText = isWin ? (currentLang === 'ja' ? "正解！" : "Correct!") : (currentLang === 'ja' ? "残念" : "Oops");
-            document.getElementById('result-icon').innerText = isWin ? "celebration" : "book";
+            /* アイコンだけはここで決定してOK */
+            document.getElementById('result-icon').innerText =
+                isWin ? "celebration" : "book";
 
+            /* ボタン表示の制御 */
             if (!isWin && difficulty === 30) {
-                document.getElementById('result-title').innerText = currentLang === 'ja' ? "ゲームオーバー" : "Game Over";
                 document.getElementById('fail-options').className = "hidden";
                 document.getElementById('success-options').className = "";
             } else {
-                document.getElementById('fail-options').className = isWin ? "hidden" : "";
-                document.getElementById('success-options').className = isWin ? "" : "hidden";
+                document.getElementById('fail-options').className =
+                    isWin ? "hidden" : "";
+                document.getElementById('success-options').className =
+                    isWin ? "" : "hidden";
             }
+
+            /* ★ 結果タイトルは必ずここで一括更新 */
+            updateResultTexts();
         }
+
 
         function showHint() {
             const userCards = [...document.querySelectorAll('.event-card')];
