@@ -530,21 +530,24 @@
                 el.className = 'event-card';
                 el.draggable = true;
                 el.dataset.id = item.id;
-                el.innerHTML = `<span class="material-icons" style="color:#ccc">drag_indicator</span><div class="event-name" style="flex:1">${item[currentLang]}</div>`;
+                el.innerHTML = `<span class="material-icons drag-handle" aria-label="drag" style="color:#ccc">drag_indicator</span><div class="event-name" style="flex:1">${item[currentLang]}</div>`;
                 el.addEventListener('dragstart', () => el.classList.add('dragging'));
                 el.addEventListener('dragend', () => el.classList.remove('dragging'));
-                el.ontouchstart = handleTouchStart;
-                el.ontouchmove = handleTouchMove;
-                el.ontouchend = handleTouchEnd;
+                const handle = el.querySelector('.drag-handle');
+                if (handle) {
+                    handle.ontouchstart = handleTouchStart;
+                    handle.ontouchmove = handleTouchMove;
+                    handle.ontouchend = handleTouchEnd;
+                }
                 list.appendChild(el);
             });
-            list.addEventListener('dragover', e => {
+            list.ondragover = e => {
                 e.preventDefault();
                 const draggingItem = document.querySelector('.dragging');
                 const afterElement = getDragAfterElement(list, e.clientY);
                 if (afterElement == null) list.appendChild(draggingItem);
                 else list.insertBefore(draggingItem, afterElement);
-            });
+            };
         }
 
         function getDragAfterElement(container, y) {
@@ -558,19 +561,46 @@
         }
 
         let activeItem = null;
-        function handleTouchStart(e) { activeItem = this; this.style.opacity = "0.5"; }
+
+        /* ==========================================================
+          タッチ開始（≡ハンドルのみ）
+          - this は drag-handle になるので、親の .event-card を掴む
+          - 以降の移動処理は activeItem（カード）を動かす
+        ========================================================== */
+        function handleTouchStart(e) {
+            activeItem = this.closest('.event-card');
+            if (!activeItem) return;
+            activeItem.style.opacity = "0.5";
+        }
+
+        /* ==========================================================
+          タッチ移動
+          - 指の位置から「今指の下にある .event-card」を探す
+          - それが activeItem と違えば、上下どちらに入れるか決めて入れ替える
+        ========================================================== */
         function handleTouchMove(e) {
+            if (!activeItem) return;
+
             e.preventDefault();
             const touch = e.touches[0];
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
             const card = target ? target.closest('.event-card') : null;
+
             if (card && card !== activeItem) {
                 const rect = card.getBoundingClientRect();
                 if (touch.clientY < rect.top + rect.height / 2) card.before(activeItem);
                 else card.after(activeItem);
             }
         }
-        function handleTouchEnd() { if (activeItem) activeItem.style.opacity = "1"; activeItem = null; }
+
+        /* ==========================================================
+          タッチ終了
+        ========================================================== */
+        function handleTouchEnd() {
+            if (activeItem) activeItem.style.opacity = "1";
+            activeItem = null;
+        }
+
 
         function checkOrder() {
             clearInterval(timerInterval);
