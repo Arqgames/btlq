@@ -306,6 +306,9 @@
         let timerInterval;
         let timeLeft;
 
+        /* 結果画面の再描画用：直前の勝敗を覚える */
+        let lastIsWin = null;
+
         const refMap = {
             "Gen": "創", "Exo": "出", "Lev": "レビ", "Num": "民", "Deut": "申",
             "Josh": "ヨシュ", "Judg": "裁", "Ruth": "ルツ", "1Sam": "サム一", "2Sam": "サム二",
