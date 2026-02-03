@@ -553,6 +553,16 @@
 
                 el.addEventListener('dragstart', (e) => {
                     el.classList.add('dragging');
+
+                    // ✅ PC用：placeholder（点線の空き枠）を作って元の位置に置く
+                    const rect = el.getBoundingClientRect();
+                    if (!placeholder) {
+                        placeholder = document.createElement('div');
+                        placeholder.className = 'sortable-placeholder';
+                    }
+                    placeholder.style.height = rect.height + 'px';
+                    el.after(placeholder);
+
                     // Safari対策：dataTransferが空だとドラッグ開始しないことがある
                     if (e.dataTransfer) {
                         e.dataTransfer.effectAllowed = 'move';
@@ -562,6 +572,12 @@
 
                 el.addEventListener('dragend', () => {
                     el.classList.remove('dragging');
+
+                    // ✅ PC用：placeholder を消す
+                    if (placeholder && placeholder.parentNode) {
+                        placeholder.remove();
+                    }
+                    placeholder = null;
                 });
 
                 /* ✅ スマホ：長押しタッチ */
@@ -573,16 +589,40 @@
                 list.appendChild(el);
             });
 
-            /* ✅ PC用：並び替え確定（これが無いと順序が変わらない） */
+            /* ✅ PC用：並び替え確定（placeholder を動かす） */
             list.ondragover = (e) => {
                 e.preventDefault();
 
                 const draggingItem = document.querySelector('.event-card.dragging');
                 if (!draggingItem) return;
 
+                // placeholder が無ければ作る（保険）
+                if (!placeholder) {
+                    placeholder = document.createElement('div');
+                    placeholder.className = 'sortable-placeholder';
+                }
+
                 const afterElement = getDragAfterElement(list, e.clientY);
-                if (afterElement == null) list.appendChild(draggingItem);
-                else list.insertBefore(draggingItem, afterElement);
+                if (afterElement == null) list.appendChild(placeholder);
+                else list.insertBefore(placeholder, afterElement);
+            };
+
+            // ✅ PC用：ドロップ時に placeholder の位置へ確定配置
+            list.ondrop = (e) => {
+                e.preventDefault();
+
+                const draggingItem = document.querySelector('.event-card.dragging');
+                if (!draggingItem) return;
+
+                if (placeholder && placeholder.parentNode === list) {
+                    placeholder.replaceWith(draggingItem);
+                }
+
+                // 後始末（dragendでも消すが保険）
+                if (placeholder && placeholder.parentNode) {
+                    placeholder.remove();
+                }
+                placeholder = null;
             };
         }
 
