@@ -257,10 +257,19 @@
             margin-left: 1.2em;
             display: block;
         }
+
+        /* 並び替え時の挿入位置（プレースホルダ） */
+        .sortable-placeholder {
+            height: 64px;
+            /* カードのだいたいの高さ。後で調整OK */
+            margin: 12px 0;
+            border-radius: 15px;
+            border: 3px dashed var(--accent);
+            background: rgba(251, 197, 49, 0.15);
+        }
     </style>
 
 </head>
-
 
 <body>
 
@@ -564,76 +573,111 @@
         }
 
         let activeItem = null;
+        /* 並び替え中に表示するプレースホルダ要素 */
+        let placeholder = null;
         let dragOffsetX = 0;
         let dragOffsetY = 0;
 
         function handleTouchStart(e) {
-            // ハンドル（≡）から始まるので、親のカードを掴む
+            /* ==========================================================
+              ②方式：ハンドルを触ったときだけドラッグ開始
+              - this は .drag-handle（≡アイコン）なので、親の .event-card を拾う
+            ========================================================== */
             activeItem = this.closest('.event-card');
             if (!activeItem) return;
 
-            const touch = e.touches[0];
+            /* ==========================================================
+              プレースホルダ生成（なければ作る）
+              - 同じ高さ/余白にして、元の位置を確保する
+              - activeItem の直前に挿入する（見た目上「ここにあった」を残す）
+            ========================================================== */
+            if (!placeholder) {
+                placeholder = document.createElement('div');
+                placeholder.className = 'sortable-placeholder';
+            }
+
+            /* activeItem のサイズを元にプレースホルダの高さを合わせる */
             const rect = activeItem.getBoundingClientRect();
+            placeholder.style.height = rect.height + 'px';
 
-            // 指とカード左上のズレ（追従のため）
-            dragOffsetX = touch.clientX - rect.left;
-            dragOffsetY = touch.clientY - rect.top;
+            /* 余白（margin）も合わせる：上下だけ合わせれば見た目が崩れにくい */
+            const cs = window.getComputedStyle(activeItem);
+            placeholder.style.marginTop = cs.marginTop;
+            placeholder.style.marginBottom = cs.marginBottom;
 
-            // “浮いている”見た目にする（位置固定で指に追従できる）
-            activeItem.classList.add('dragging');
+            /* すでに別場所に入っていたら一旦外してから差し込む */
+            if (placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
 
-            // 下のカードを検出できるように（elementFromPointが裏を拾える）
-            activeItem.style.pointerEvents = 'none';
+            /* 元の位置にプレースホルダを差し込む（activeItem の位置を確保） */
+            activeItem.before(placeholder);
 
-            // fixed化（見た目のズレ防止のため幅も固定）
-            activeItem.style.position = 'fixed';
-            activeItem.style.left = `${rect.left}px`;
-            activeItem.style.top = `${rect.top}px`;
-            activeItem.style.width = `${rect.width}px`;
-            activeItem.style.zIndex = '9999';
-            activeItem.style.opacity = '0.9';
+            /* 見た目：ドラッグ中のカードを少し薄くする（追従はあなたの既存処理に任せる） */
+            activeItem.style.opacity = "0.85";
         }
+
 
         function handleTouchMove(e) {
             if (!activeItem) return;
 
-            e.preventDefault(); // ドラッグ中のスクロール抑制（今問題なくても保険）
+            /* ==========================================================
+              スクロール抑制（ドラッグ操作を優先）
+              ※「スクロールしたいのに動く問題はない」とのことなので
+                ここはこのままでOK
+            ========================================================== */
+            e.preventDefault();
+
             const touch = e.touches[0];
-
-            // 指に追従（カードの左上が“指の位置 - offset”になる）
-            activeItem.style.left = `${touch.clientX - dragOffsetX}px`;
-            activeItem.style.top = `${touch.clientY - dragOffsetY}px`;
-
-            // 今指の下にあるカードを探す（activeItemは pointer-events:none なので邪魔しない）
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
             const card = target ? target.closest('.event-card') : null;
 
-            if (card && card !== activeItem) {
-                const rect = card.getBoundingClientRect();
-                if (touch.clientY < rect.top + rect.height / 2) {
-                    card.before(activeItem);
-                } else {
-                    card.after(activeItem);
-                }
+            /* ==========================================================
+              指の下がカードなら、上下どちらにプレースホルダを入れるか決める
+              - card が activeItem 自身なら何もしない
+              - card が placeholder 自体なら何もしない（念のため）
+            ========================================================== */
+            if (!card || card === activeItem || card === placeholder) return;
+
+            const rect = card.getBoundingClientRect();
+
+            /* 指がカードの上半分なら「前」、下半分なら「後」にプレースホルダを移動 */
+            if (touch.clientY < rect.top + rect.height / 2) {
+                card.before(placeholder);
+            } else {
+                card.after(placeholder);
             }
         }
+
 
         function handleTouchEnd() {
             if (!activeItem) return;
 
-            // 見た目を元に戻す
-            activeItem.classList.remove('dragging');
+            const list = document.getElementById('event-list');
 
-            activeItem.style.pointerEvents = '';
+            /* ==========================================================
+              1) placeholder が残っていれば、その位置に activeItem を確定配置
+                 - placeholder の「直後」に activeItem を入れる
+                 - その後 placeholder は削除
+            ========================================================== */
+            if (placeholder && list && list.contains(placeholder)) {
+                placeholder.after(activeItem);
+                placeholder.remove();
+                placeholder = null;
+            }
+
+            /* ==========================================================
+              2) 見た目を元に戻す
+            ========================================================== */
             activeItem.style.position = '';
             activeItem.style.left = '';
             activeItem.style.top = '';
             activeItem.style.width = '';
             activeItem.style.zIndex = '';
-            activeItem.style.opacity = '';
+            activeItem.style.pointerEvents = '';
+            activeItem.style.opacity = "1";
 
             activeItem = null;
         }
+
 
         function checkOrder() {
             clearInterval(timerInterval);
