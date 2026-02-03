@@ -334,9 +334,11 @@
         let currentTask = [];
         let timerInterval;
         let timeLeft;
-
         /* 結果画面の再描画用：直前の勝敗を覚える */
         let lastIsWin = null;
+        /* ヒント再描画用：直前に表示したヒントのIDを覚える */
+        let lastHintIds = null;
+        let lastHintWasEmpty = null;
 
         const refMap = {
             "Gen": "創", "Exo": "出", "Lev": "レビ", "Num": "民", "Deut": "申",
@@ -426,18 +428,14 @@
         }
 
         function toggleLang() {
-
             /* JA ⇄ EN を切り替える */
             currentLang = currentLang === 'ja' ? 'en' : 'ja';
             document.documentElement.lang = currentLang;
-
             /* 次回アクセス時も同じ言語で開くために保存する */
             localStorage.setItem('lang', currentLang);
-
             /* ボタン表示を更新（今が日本語なら "JA"、英語なら "EN"） */
             document.getElementById('lang-btn').innerText =
                 currentLang === 'ja' ? 'JA' : 'EN';
-
             /* data-ja / data-en を持つ要素のテキストをまとめて差し替える */
             document.querySelectorAll('[data-ja]').forEach(el => {
                 el.innerText = el.getAttribute('data-' + currentLang);
@@ -445,9 +443,12 @@
 
             /* ゲーム画面のカード表示も今の言語で更新する */
             updateCardTexts();
-
             /* 年代のセレクトなど、言語依存の表示を再構築する */
             initPickers();
+            /* 結果画面（正解/残念/ゲームオーバー）を現在言語で再描画 */
+            updateResultTexts();
+            /* ヒント表示中なら、ヒント文章を現在言語で再描画 */
+            updateHintTexts();
         }
 
         function updateCardTexts() {
@@ -615,6 +616,66 @@
             }
         }
 
+        /* ==========================================================
+        ヒント表示の文言を currentLang に合わせて更新する
+        - toggleLang() から呼ばれる
+        - 直前に表示したヒントの内容（lastHintIds / lastHintWasEmpty）を元に再構築する
+        - ヒントが表示中でない場合は何もしない
+        ========================================================== */
+        function updateHintTexts() {
+
+            /* ヒント領域が存在しないページなら何もしない */
+            const hintArea = document.getElementById('hint-area');
+            if (!hintArea) return;
+
+            /* ヒントがそもそも表示されていない（hidden）なら何もしない */
+            if (hintArea.classList.contains('hidden')) return;
+
+            /* showHint() がまだ一度も呼ばれていないなら何もしない */
+            if (lastHintIds === null && lastHintWasEmpty === null) return;
+
+            /* タイトル（見出し） */
+            const title = currentLang === 'ja'
+                ? "💡 調査の助け:"
+                : "💡 Clues for misplaced items:";
+
+            let html = `<strong>${title}</strong><br><br>`;
+
+            /* 「並び順は合っている」ケース */
+            if (lastHintWasEmpty) {
+                html += currentLang === 'ja'
+                    ? "並び順は合っているようです。"
+                    : "The order seems correct.";
+
+                hintArea.innerHTML = html;
+                return;
+            }
+
+            /* 通常ケース：lastHintIds からイベントを引いて再構築 */
+            const hints = (lastHintIds || [])
+                .map(id => masterEvents.find(e => e.id === id))
+                .filter(Boolean);
+
+            /* 念のため：復元できなかったら空扱いにする */
+            if (hints.length === 0) {
+                html += currentLang === 'ja'
+                    ? "並び順は合っているようです。"
+                    : "The order seems correct.";
+
+                hintArea.innerHTML = html;
+                return;
+            }
+
+            hints.forEach(s => {
+                const hintDesc = s['hint_' + currentLang] || "";
+                html += `<div class="hint-item">
+                    ・${s[currentLang]} (${formatRef(s.ref)})
+                    <span class="hint-desc">${hintDesc}</span>
+                 </div>`;
+            });
+
+            hintArea.innerHTML = html;
+        }
 
         function showResultScreen(isWin) {
 
@@ -645,7 +706,6 @@
             updateResultTexts();
         }
 
-
         function showHint() {
             const userCards = [...document.querySelectorAll('.event-card')];
             const userIds = userCards.map(el => parseInt(el.dataset.id));
@@ -663,6 +723,13 @@
             const difficulty = parseInt(document.getElementById('count-select').value);
             const pickupCount = (difficulty === 12) ? 1 : 2;
             const hintsToShow = wrongEvents.sort(() => 0.5 - Math.random()).slice(0, pickupCount);
+            /* ==========================================================
+                直前のヒント内容を保存（言語切替時の再描画用）
+                - lastHintIds: 今回ヒントに出したイベントIDの配列
+                - lastHintWasEmpty: ヒントが空（並び順は合っている）だったか
+            ========================================================== */
+            lastHintIds = hintsToShow.map(e => e.id);
+            lastHintWasEmpty = (hintsToShow.length === 0);
 
             const title = currentLang === 'ja' ? "💡 調査の助け:" : "💡 Clues for misplaced items:";
             let html = `<strong>${title}</strong><br><br>`;
