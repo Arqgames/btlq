@@ -2,269 +2,259 @@
 <html lang="ja">
 
 <head>
-  <meta charset="UTF-8" />
+    <meta charset="UTF-8" />
 
-  <!-- 画面表示（スマホ対応） -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- 画面表示（スマホ対応） -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-  <!-- 基本SEO -->
-  <title>Bible Timeline Quiz</title>
-  <meta
-    name="description"
-    content="Bible Timeline Quiz is a free browser game where you arrange Bible events in chronological order. Supports Japanese and English."
-  />
+    <!-- 基本SEO -->
+    <title>Bible Timeline Quiz</title>
+    <meta name="description"
+        content="Bible Timeline Quiz is a free browser game where you arrange Bible events in chronological order. Supports Japanese and English." />
 
-  <!-- 検索結果の表示強化（Open Graph / Twitter） -->
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="Bible Timeline Quiz" />
-  <meta
-    property="og:description"
-    content="A free browser game where you arrange Bible events in chronological order. Supports Japanese and English."
-  />
-  <!-- TODO: 公開URLが確定したらここを書き換え（GitHub PagesのURL） -->
-  <!-- 例: https://btlq.github.io/ -->
-  <meta property="og:url" content="https://YOUR_GITHUB_PAGES_URL/" />
+    <!-- 検索結果の表示強化（Open Graph / Twitter） -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Bible Timeline Quiz" />
+    <meta property="og:description"
+        content="A free browser game where you arrange Bible events in chronological order. Supports Japanese and English." />
+    <!-- TODO: 公開URLが確定したらここを書き換え（GitHub PagesのURL） -->
+    <!-- 例: https://btlq.github.io/ -->
+    <meta property="og:url" content="https://YOUR_GITHUB_PAGES_URL/" />
 
-  <!-- TODO: サムネ画像を置く場合（/og.png など） -->
-  <!-- <meta property="og:image" content="https://YOUR_GITHUB_PAGES_URL/og.png" /> -->
+    <!-- TODO: サムネ画像を置く場合（/og.png など） -->
+    <!-- <meta property="og:image" content="https://YOUR_GITHUB_PAGES_URL/og.png" /> -->
 
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Bible Timeline Quiz" />
-  <meta
-    name="twitter:description"
-    content="A free browser game where you arrange Bible events in chronological order. Supports Japanese and English."
-  />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Bible Timeline Quiz" />
+    <meta name="twitter:description"
+        content="A free browser game where you arrange Bible events in chronological order. Supports Japanese and English." />
 
-  <!-- 表示の雰囲気（任意） -->
-  <meta name="theme-color" content="#f4e4bc" />
+    <!-- 表示の雰囲気（任意） -->
+    <meta name="theme-color" content="#f4e4bc" />
 
-  <!-- アイコン（任意：後で追加してOK） -->
-  <!-- <link rel="icon" href="/favicon.ico" /> -->
-  <!-- <link rel="apple-touch-icon" href="/apple-touch-icon.png" /> -->
+    <!-- アイコン（任意：後で追加してOK） -->
+    <!-- <link rel="icon" href="/favicon.ico" /> -->
+    <!-- <link rel="apple-touch-icon" href="/apple-touch-icon.png" /> -->
 
-  <!-- フォント / ライブラリ（あなたの現状を維持） -->
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- フォント / ライブラリ（あなたの現状を維持） -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <style>
-  :root {
-    --main-bg: #f4e4bc;
-    --card-bg: #fff9e6;
-    --accent: #fbc531;
-    --text: #5d3a1a;
-  }
+    <style>
+        :root {
+            --main-bg: #f4e4bc;
+            --card-bg: #fff9e6;
+            --accent: #fbc531;
+            --text: #5d3a1a;
+        }
 
-  body {
-    font-family: 'Hiragino Kaku Gothic ProN', sans-serif;
-    /* 背景色に加えて、質感を出すための設定 */
-    background-color: var(--main-bg);
-    background-image: url('https://www.transparenttextures.com/patterns/papyrus.png');
-    /* パピルス風の質感 */
-    background-attachment: fixed;
-    margin: 0;
-    padding: 20px 0;
-    color: var(--text);
-    touch-action: manipulation;
-  }
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', sans-serif;
+            background-color: var(--main-bg);
+            margin: 0;
+            padding: 20px 0;
+            color: var(--text);
+            touch-action: manipulation;
+        }
 
-  .container {
-    background: var(--card-bg);
-    padding: 30px 20px;
-    border-radius: 40px;
-    box-shadow: 0 10px 0 #d4af37;
-    width: 92%;
-    max-width: 450px;
-    text-align: center;
-    border: 8px solid var(--accent);
-    position: relative;
-    margin: 40px auto;
-    box-sizing: border-box;
-  }
+        .container {
+            background: var(--card-bg);
+            padding: 30px 20px;
+            border-radius: 40px;
+            box-shadow: 0 10px 0 #d4af37;
+            width: 92%;
+            max-width: 450px;
+            text-align: center;
+            border: 8px solid var(--accent);
+            position: relative;
+            margin: 40px auto;
+            box-sizing: border-box;
+        }
 
-  .top-btn {
-    position: absolute;
-    top: -65px;
-    width: 50px;
-    height: 50px;
-    background: #fff;
-    border-radius: 50%;
-    border: 3px solid var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #d4af37;
-    z-index: 100;
-    font-weight: bold;
-    color: var(--text);
-    font-size: 0.85em;
-  }
+        .top-btn {
+            position: absolute;
+            top: -65px;
+            width: 50px;
+            height: 50px;
+            background: #fff;
+            border-radius: 50%;
+            border: 3px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #d4af37;
+            z-index: 100;
+            font-weight: bold;
+            color: var(--text);
+            font-size: 0.85em;
+        }
 
-  .home-btn {
-    left: 10px;
-    border-color: #8b5e3c;
-    box-shadow: 0 4px 0 #8b5e3c;
-    color: #8b5e3c;
-  }
+        .home-btn {
+            left: 10px;
+            border-color: #8b5e3c;
+            box-shadow: 0 4px 0 #8b5e3c;
+            color: #8b5e3c;
+        }
 
-  .lang-switch {
-    right: 10px;
-  }
+        .lang-switch {
+            right: 10px;
+        }
 
-  .header-icon-box {
-    background: #fff;
-    width: 70px;
-    height: 70px;
-    margin: -65px auto 10px;
-    border-radius: 50%;
-    border: 5px solid var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 0 #d4af37;
-  }
+        .header-icon-box {
+            background: #fff;
+            width: 70px;
+            height: 70px;
+            margin: -65px auto 10px;
+            border-radius: 50%;
+            border: 5px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 0 #d4af37;
+        }
 
-  .header-icon {
-    font-size: 35px !important;
-    color: #f39c12;
-  }
+        .header-icon {
+            font-size: 35px !important;
+            color: #f39c12;
+        }
 
-  .quick-btn-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin: 15px 0;
-  }
+        .quick-btn-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin: 15px 0;
+        }
 
-  .q-btn {
-    background: #8b5e3c;
-    color: white;
-    border: none;
-    padding: 12px 5px;
-    border-radius: 12px;
-    font-size: 0.8em;
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #5d3a1a;
-  }
+        .q-btn {
+            background: #8b5e3c;
+            color: white;
+            border: none;
+            padding: 12px 5px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #5d3a1a;
+        }
 
-  .q-btn.full {
-    grid-column: span 2;
-    background: #5d3a1a;
-  }
+        .q-btn.full {
+            grid-column: span 2;
+            background: #5d3a1a;
+        }
 
-  .q-btn.active {
-    background: #d35400;
-    box-shadow: 0 4px 0 #a04000;
-    outline: 2px solid #fff;
-  }
+        .q-btn.active {
+            background: #d35400;
+            box-shadow: 0 4px 0 #a04000;
+            outline: 2px solid #fff;
+        }
 
-  .picker-group {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    background: rgba(255, 255, 255, 0.6);
-    padding: 12px;
-    border-radius: 15px;
-    border: 2px solid #ecd4a1;
-    margin: 10px 0;
-  }
+        .picker-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 12px;
+            border-radius: 15px;
+            border: 2px solid #ecd4a1;
+            margin: 10px 0;
+        }
 
-  .picker-column {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
+        .picker-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
 
-  select {
-    width: 100%;
-    padding: 12px;
-    border-radius: 10px;
-    border: 2px solid var(--accent);
-    font-weight: bold;
-    background: #fff;
-    font-size: 0.9em;
-  }
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid var(--accent);
+            font-weight: bold;
+            background: #fff;
+            font-size: 0.9em;
+        }
 
-  .btn {
-    background: linear-gradient(to bottom, #ffc048, #ff9f1a);
-    color: #fff;
-    border: none;
-    padding: 18px;
-    border-radius: 35px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 1.1em;
-    box-shadow: 0 6px 0 #cc8e35;
-    width: 100%;
-    margin: 10px 0;
-  }
+        .btn {
+            background: linear-gradient(to bottom, #ffc048, #ff9f1a);
+            color: #fff;
+            border: none;
+            padding: 18px;
+            border-radius: 35px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1em;
+            box-shadow: 0 6px 0 #cc8e35;
+            width: 100%;
+            margin: 10px 0;
+        }
 
-  .btn-sub {
-    background: #8b5e3c;
-    box-shadow: 0 6px 0 #5d3a1a;
-  }
+        .btn-sub {
+            background: #8b5e3c;
+            box-shadow: 0 6px 0 #5d3a1a;
+        }
 
-  #error-msg {
-    color: #d63031;
-    font-weight: bold;
-    font-size: 0.85em;
-    height: 1.2em;
-    margin-bottom: 5px;
-    transition: 0.3s;
-  }
+        #error-msg {
+            color: #d63031;
+            font-weight: bold;
+            font-size: 0.85em;
+            height: 1.2em;
+            margin-bottom: 5px;
+            transition: 0.3s;
+        }
 
-  .event-card {
-    background: #fff;
-    border-radius: 15px;
-    margin: 12px 0;
-    padding: 18px 15px;
-    cursor: grab;
-    font-weight: bold;
-    border: 2px solid var(--accent);
-    text-align: left;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.05);
-    user-select: none;
-  }
+        .event-card {
+            background: #fff;
+            border-radius: 15px;
+            margin: 12px 0;
+            padding: 18px 15px;
+            cursor: grab;
+            font-weight: bold;
+            border: 2px solid var(--accent);
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.05);
+            user-select: none;
+        }
 
-  .event-card.dragging {
-    opacity: 0.5;
-    background: #eee;
-  }
+        .event-card.dragging {
+            opacity: 0.5;
+            background: #eee;
+        }
 
-  .hidden {
-    display: none !important;
-  }
+        .hidden {
+            display: none !important;
+        }
 
-  #hint-area {
-    background: #fff5d7;
-    border: 3px dashed #f39c12;
-    border-radius: 20px;
-    padding: 15px;
-    margin-top: 15px;
-    font-weight: bold;
-    text-align: left;
-    font-size: 0.85em;
-    white-space: pre-line;
-  }
+        #hint-area {
+            background: #fff5d7;
+            border: 3px dashed #f39c12;
+            border-radius: 20px;
+            padding: 15px;
+            margin-top: 15px;
+            font-weight: bold;
+            text-align: left;
+            font-size: 0.85em;
+            white-space: pre-line;
+        }
 
-  .hint-item {
-    margin-bottom: 10px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid #ecd4a1;
-  }
+        .hint-item {
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ecd4a1;
+        }
 
-  .hint-desc {
-    font-weight: normal;
-    font-size: 0.9em;
-    color: #8b5e3c;
-    margin-left: 1.2em;
-    display: block;
-  }
-</style>
+        .hint-desc {
+            font-weight: normal;
+            font-size: 0.9em;
+            color: #8b5e3c;
+            margin-left: 1.2em;
+            display: block;
+        }
+    </style>
 
 </head>
 
