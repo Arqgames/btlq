@@ -579,6 +579,37 @@
         let pressTimer = null;
         let isDragging = false;
 
+        let preMoveListener = null;
+
+        function attachPreMoveCancel() {
+            if (preMoveListener) return;
+
+            preMoveListener = (ev) => {
+                if (!pressTimer || isDragging) return;
+
+                const t = ev.touches[0];
+                const dx = t.clientX - startX;
+                const dy = t.clientY - startY;
+                const dist = Math.hypot(dx, dy);
+
+                // スクロールのつもり → 長押しキャンセル
+                if (dist > CANCEL_MOVE_THRESHOLD) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                    detachPreMoveCancel();
+                }
+            };
+
+            // ★ここは passive:true でOK（スクロール邪魔しない）
+            document.addEventListener('touchmove', preMoveListener, { passive: true });
+        }
+
+        function detachPreMoveCancel() {
+            if (!preMoveListener) return;
+            document.removeEventListener('touchmove', preMoveListener);
+            preMoveListener = null;
+        }
+
         /* タッチ開始位置（長押し成立前の移動判定用） */
         let startX = 0;
         let startY = 0;
@@ -608,24 +639,35 @@
             const touch = e.touches[0];
             startX = touch.clientX;
             startY = touch.clientY;
+            attachPreMoveCancel();
+
+            document.addEventListener(
+                'touchend',
+                () => {
+                    if (!isDragging && pressTimer) {
+                        clearTimeout(pressTimer);
+                        pressTimer = null;
+                    }
+                },
+                { passive: true, once: true }
+            );
+
+            document.addEventListener(
+                'touchcancel',
+                () => {
+                    if (!isDragging && pressTimer) {
+                        clearTimeout(pressTimer);
+                        pressTimer = null;
+                    }
+                },
+                { passive: true, once: true }
+            );
 
             // 既存タイマーがあればクリア
             if (pressTimer) {
                 clearTimeout(pressTimer);
                 pressTimer = null;
             }
-
-            // ★長押し待ち中に指が離れたら、必ずタイマーを止める（重要）
-            const cancelLongPress = () => {
-                if (!isDragging && pressTimer) {
-                    clearTimeout(pressTimer);
-                    pressTimer = null;
-                }
-                document.removeEventListener('touchend', cancelLongPress);
-                document.removeEventListener('touchcancel', cancelLongPress);
-            };
-            document.addEventListener('touchend', cancelLongPress, { passive: true });
-            document.addEventListener('touchcancel', cancelLongPress, { passive: true });
 
             // 長押し成立したら「ここで初めてドラッグ開始」
             pressTimer = setTimeout(() => {
@@ -635,6 +677,8 @@
 
                 // ここでドラッグ開始
                 isDragging = true;
+                // ★ スクロール検知はもう不要
+                detachPreMoveCancel();
                 activeItem.classList.add('dragging');
 
                 // 長押し待ちキャンセル監視を外す（保険）
@@ -712,21 +756,7 @@
             const x = touch.clientX;
             const y = touch.clientY;
 
-            // まだ長押し成立してない → スクロール優先
-            if (!isDragging) {
-                // 少しでも動いたら「スクロールするつもり」とみなして長押しキャンセル
-                const dx = x - startX;
-                const dy = y - startY;
-                const dist = Math.hypot(dx, dy);
-
-                if (dist > CANCEL_MOVE_THRESHOLD) {
-                    if (pressTimer) {
-                        clearTimeout(pressTimer);
-                        pressTimer = null;
-                    }
-                }
-                return; // ここで終わり（スクロールを邪魔しない）
-            }
+            if (!isDragging) return; // ← 長押し成立前は何もしない（スクロールはブラウザに任せる）
 
             // ここから下はドラッグ中
             e.preventDefault();
@@ -757,6 +787,7 @@
 
             // そもそもドラッグ開始してなかった（ただのタップ/スクロール）なら終了
             if (!isDragging) {
+                detachPreMoveCancel();
                 activeItem = null;
                 return;
             }
