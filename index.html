@@ -545,52 +545,38 @@
         el.dataset.id = item.id;
 
         el.innerHTML =
-            `<span class="material-icons drag-handle" aria-label="drag" style="color:#ccc">drag_indicator</span>` +
+            `<span class="material-icons drag-handle" style="color:#ccc">drag_indicator</span>` +
             `<div class="event-name" style="flex:1">${item[currentLang]}</div>`;
 
-        /* ✅ PC用：HTML5ドラッグ */
+        /* ===== PCドラッグ ===== */
         el.draggable = true;
 
         el.addEventListener('dragstart', (e) => {
+            draggingItemPC = el;
             el.classList.add('dragging');
 
-            // ✅ placeholder（点線の空き枠）を「元の場所」に置く
             const rect = el.getBoundingClientRect();
-            if (!placeholder) {
-                placeholder = document.createElement('div');
-                placeholder.className = 'sortable-placeholder';
-            }
+            placeholder = document.createElement('div');
+            placeholder.className = 'sortable-placeholder';
             placeholder.style.height = rect.height + 'px';
 
-            // 元のカード位置を placeholder に置き換える（スマホと同じ）
             el.replaceWith(placeholder);
 
-            // ✅ ドラッグ中は元カードを非表示にする（複製に見えるのを防ぐ）
-            // ※ display:none を即時にやるとブラウザによってドラッグ開始が失敗するので setTimeout
-            setTimeout(() => {
-                el.style.display = 'none';
-            }, 0);
+            // ❗ display:none は使わない
+            el.style.visibility = 'hidden';
 
-            // Safari対策
-            if (e.dataTransfer) {
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', el.dataset.id || '');
-            }
+            e.dataTransfer.setData('text/plain', '');
+            e.dataTransfer.effectAllowed = 'move';
         });
 
         el.addEventListener('dragend', () => {
-            // ✅ 非表示を戻す
-            el.style.display = '';
             el.classList.remove('dragging');
+            el.style.visibility = '';
 
-            // ✅ placeholder を消す（保険）
-            if (placeholder && placeholder.parentNode) {
-                placeholder.remove();
-            }
-            placeholder = null;
+            draggingItemPC = null;
         });
 
-        /* ✅ スマホ：長押しタッチ */
+        /* ===== スマホ ===== */
         el.ontouchstart = handleTouchStart;
         el.ontouchmove = handleTouchMove;
         el.ontouchend = handleTouchEnd;
@@ -599,33 +585,26 @@
         list.appendChild(el);
     });
 
-    /* ✅ PC用：placeholder を動かす */
+    /* 並び替え位置更新 */
     list.ondragover = (e) => {
         e.preventDefault();
-
         if (!placeholder) return;
 
-        const afterElement = getDragAfterElement(list, e.clientY);
-        if (afterElement == null) list.appendChild(placeholder);
-        else list.insertBefore(placeholder, afterElement);
+        const after = getDragAfterElement(list, e.clientY);
+        if (after == null) list.appendChild(placeholder);
+        else list.insertBefore(placeholder, after);
     };
 
-    /* ✅ PC用：ドロップで placeholder の位置に確定 */
+    /* 確定 */
     list.ondrop = (e) => {
         e.preventDefault();
+        if (!draggingItemPC || !placeholder) return;
 
-        const draggingItem = document.querySelector('.event-card.dragging');
-        if (!draggingItem) return;
-
-        // placeholder の位置に戻す
-        if (placeholder && placeholder.parentNode === list) {
-            list.insertBefore(draggingItem, placeholder);
-            placeholder.remove();
-        }
+        list.insertBefore(draggingItemPC, placeholder);
+        placeholder.remove();
         placeholder = null;
 
-        // 表示復帰（drop の時点で戻しておく。dragendでも戻るが保険）
-        draggingItem.style.display = '';
+        draggingItemPC.style.visibility = '';
     };
 }
 
