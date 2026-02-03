@@ -221,9 +221,12 @@
         }
 
         .event-card.dragging {
-            opacity: 0.5;
-            background: #eee;
+            transform: scale(1.03);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            border-color: #fbc531;
+            background: #fff;
         }
+
 
         .hidden {
             display: none !important;
@@ -561,46 +564,76 @@
         }
 
         let activeItem = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
 
-        /* ==========================================================
-          タッチ開始（≡ハンドルのみ）
-          - this は drag-handle になるので、親の .event-card を掴む
-          - 以降の移動処理は activeItem（カード）を動かす
-        ========================================================== */
         function handleTouchStart(e) {
+            // ハンドル（≡）から始まるので、親のカードを掴む
             activeItem = this.closest('.event-card');
             if (!activeItem) return;
-            activeItem.style.opacity = "0.5";
+
+            const touch = e.touches[0];
+            const rect = activeItem.getBoundingClientRect();
+
+            // 指とカード左上のズレ（追従のため）
+            dragOffsetX = touch.clientX - rect.left;
+            dragOffsetY = touch.clientY - rect.top;
+
+            // “浮いている”見た目にする（位置固定で指に追従できる）
+            activeItem.classList.add('dragging');
+
+            // 下のカードを検出できるように（elementFromPointが裏を拾える）
+            activeItem.style.pointerEvents = 'none';
+
+            // fixed化（見た目のズレ防止のため幅も固定）
+            activeItem.style.position = 'fixed';
+            activeItem.style.left = `${rect.left}px`;
+            activeItem.style.top = `${rect.top}px`;
+            activeItem.style.width = `${rect.width}px`;
+            activeItem.style.zIndex = '9999';
+            activeItem.style.opacity = '0.9';
         }
 
-        /* ==========================================================
-          タッチ移動
-          - 指の位置から「今指の下にある .event-card」を探す
-          - それが activeItem と違えば、上下どちらに入れるか決めて入れ替える
-        ========================================================== */
         function handleTouchMove(e) {
             if (!activeItem) return;
 
-            e.preventDefault();
+            e.preventDefault(); // ドラッグ中のスクロール抑制（今問題なくても保険）
             const touch = e.touches[0];
+
+            // 指に追従（カードの左上が“指の位置 - offset”になる）
+            activeItem.style.left = `${touch.clientX - dragOffsetX}px`;
+            activeItem.style.top = `${touch.clientY - dragOffsetY}px`;
+
+            // 今指の下にあるカードを探す（activeItemは pointer-events:none なので邪魔しない）
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
             const card = target ? target.closest('.event-card') : null;
 
             if (card && card !== activeItem) {
                 const rect = card.getBoundingClientRect();
-                if (touch.clientY < rect.top + rect.height / 2) card.before(activeItem);
-                else card.after(activeItem);
+                if (touch.clientY < rect.top + rect.height / 2) {
+                    card.before(activeItem);
+                } else {
+                    card.after(activeItem);
+                }
             }
         }
 
-        /* ==========================================================
-          タッチ終了
-        ========================================================== */
         function handleTouchEnd() {
-            if (activeItem) activeItem.style.opacity = "1";
+            if (!activeItem) return;
+
+            // 見た目を元に戻す
+            activeItem.classList.remove('dragging');
+
+            activeItem.style.pointerEvents = '';
+            activeItem.style.position = '';
+            activeItem.style.left = '';
+            activeItem.style.top = '';
+            activeItem.style.width = '';
+            activeItem.style.zIndex = '';
+            activeItem.style.opacity = '';
+
             activeItem = null;
         }
-
 
         function checkOrder() {
             clearInterval(timerInterval);
