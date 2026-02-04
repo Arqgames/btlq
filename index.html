@@ -737,23 +737,26 @@
 
             const tick = () => {
                 autoScrollRaf = null;
-
                 // ドラッグ中だけ回す
                 if (!isDragging) return;
 
                 const speed = calcAutoScrollSpeed(pendingY);
+
                 if (autoScrollDir !== 0 && speed > 0) {
                     window.scrollBy(0, autoScrollDir * speed);
-
+                    // スクロールしたぶんも含めて、ドラッグ中カードを追従更新
+                    moveDraggedItem(pendingX, pendingY);
                     // スクロールした分、placeholder 判定も「最後の指位置」で更新し続ける
                     updatePlaceholderByPointer(pendingX, pendingY);
-
-                    // 連続で回す
+                }
+                // ★重要：止めるのは stopAutoScrollLoop() に任せる
+                if (autoScrollDir !== 0) {
                     autoScrollRaf = requestAnimationFrame(tick);
                 }
             };
+        };
 
-            autoScrollRaf = requestAnimationFrame(tick);
+        autoScrollRaf = requestAnimationFrame(tick);
         }
 
         function stopAutoScrollLoop() {
@@ -768,9 +771,15 @@
         function updatePlaceholderByPointer(x, y) {
             if (!placeholder) return;
 
-            const target = document.elementFromPoint(x, y);
-            const card = target ? target.closest('.event-card') : null;
+            // ★保険：自分を一瞬隠して下の要素を正しく拾う
+            const prevVis = activeItem?.style.visibility;
+            if (activeItem) activeItem.style.visibility = 'hidden';
 
+            const target = document.elementFromPoint(x, y);
+
+            if (activeItem) activeItem.style.visibility = prevVis || '';
+
+            const card = target ? target.closest('.event-card') : null;
             if (!card || card === activeItem || card === placeholder) return;
 
             const rect = card.getBoundingClientRect();
@@ -906,15 +915,12 @@
             if (!isDragging) return; // 長押し成立前は何もしない
 
             e.preventDefault();
-
             // 追従（pendingX/pendingYが更新される）
             moveDraggedItem(x, y);
-
-            // placeholder 更新（通常）
-            updatePlaceholderByPointer(x, y);
-
             // ★ 自動スクロール判定（端ならスクロール開始）
             setAutoScrollByPointer(y);
+            // placeholder 更新（通常）
+            updatePlaceholderByPointer(x, y);
         }
 
 
