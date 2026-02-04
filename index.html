@@ -737,6 +737,7 @@
 
             const tick = () => {
                 autoScrollRaf = null;
+
                 // ドラッグ中だけ回す
                 if (!isDragging) return;
 
@@ -744,19 +745,22 @@
 
                 if (autoScrollDir !== 0 && speed > 0) {
                     window.scrollBy(0, autoScrollDir * speed);
+
                     // スクロールしたぶんも含めて、ドラッグ中カードを追従更新
                     moveDraggedItem(pendingX, pendingY);
-                    // スクロールした分、placeholder 判定も「最後の指位置」で更新し続ける
+
+                    // placeholder 判定も「最後の指位置」で更新し続ける
                     updatePlaceholderByPointer(pendingX, pendingY);
                 }
-                // ★重要：止めるのは stopAutoScrollLoop() に任せる
+
+                // 端にいる限り回し続ける（止めるのは stopAutoScrollLoop）
                 if (autoScrollDir !== 0) {
                     autoScrollRaf = requestAnimationFrame(tick);
                 }
             };
-        };
 
-        autoScrollRaf = requestAnimationFrame(tick);
+            autoScrollRaf = requestAnimationFrame(tick);
+        }
 
         function stopAutoScrollLoop() {
             autoScrollDir = 0;
@@ -765,6 +769,7 @@
                 autoScrollRaf = null;
             }
         }
+
 
         /* placeholder移動ロジックを関数化（handleTouchMove内の後半を移植） */
         function updatePlaceholderByPointer(x, y) {
