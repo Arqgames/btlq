@@ -702,6 +702,82 @@
         let pendingX = 0;
         let pendingY = 0;
 
+        /* ===== 自動スクロール（ドラッグ端） ===== */
+        const AUTO_SCROLL_ZONE = 80;   // 画面端から何pxで発動
+        const AUTO_SCROLL_MAX = 14;    // 最大速度（px/frame）
+
+        let autoScrollDir = 0;         // -1:上, 0:停止, +1:下
+        let autoScrollRaf = null;
+
+        /* 端に近いほど速くする（線形で十分） */
+        function calcAutoScrollSpeed(clientY) {
+            if (clientY < AUTO_SCROLL_ZONE) {
+                const t = (AUTO_SCROLL_ZONE - clientY) / AUTO_SCROLL_ZONE; // 0..1
+                return Math.ceil(AUTO_SCROLL_MAX * t);
+            }
+            if (clientY > window.innerHeight - AUTO_SCROLL_ZONE) {
+                const d = clientY - (window.innerHeight - AUTO_SCROLL_ZONE);
+                const t = d / AUTO_SCROLL_ZONE; // 0..1
+                return Math.ceil(AUTO_SCROLL_MAX * t);
+            }
+            return 0;
+        }
+
+        function setAutoScrollByPointer(clientY) {
+            if (clientY < AUTO_SCROLL_ZONE) autoScrollDir = -1;
+            else if (clientY > window.innerHeight - AUTO_SCROLL_ZONE) autoScrollDir = 1;
+            else autoScrollDir = 0;
+
+            if (autoScrollDir !== 0) startAutoScrollLoop();
+            else stopAutoScrollLoop();
+        }
+
+        function startAutoScrollLoop() {
+            if (autoScrollRaf) return;
+
+            const tick = () => {
+                autoScrollRaf = null;
+
+                // ドラッグ中だけ回す
+                if (!isDragging) return;
+
+                const speed = calcAutoScrollSpeed(pendingY);
+                if (autoScrollDir !== 0 && speed > 0) {
+                    window.scrollBy(0, autoScrollDir * speed);
+
+                    // スクロールした分、placeholder 判定も「最後の指位置」で更新し続ける
+                    updatePlaceholderByPointer(pendingX, pendingY);
+
+                    // 連続で回す
+                    autoScrollRaf = requestAnimationFrame(tick);
+                }
+            };
+
+            autoScrollRaf = requestAnimationFrame(tick);
+        }
+
+        function stopAutoScrollLoop() {
+            autoScrollDir = 0;
+            if (autoScrollRaf) {
+                cancelAnimationFrame(autoScrollRaf);
+                autoScrollRaf = null;
+            }
+        }
+
+        /* placeholder移動ロジックを関数化（handleTouchMove内の後半を移植） */
+        function updatePlaceholderByPointer(x, y) {
+            if (!placeholder) return;
+
+            const target = document.elementFromPoint(x, y);
+            const card = target ? target.closest('.event-card') : null;
+
+            if (!card || card === activeItem || card === placeholder) return;
+
+            const rect = card.getBoundingClientRect();
+            if (y < rect.top + rect.height / 2) card.before(placeholder);
+            else card.after(placeholder);
+        }
+
         function handleTouchStart(e) {
             // ここではまだドラッグ開始しない（スクロール優先）
             isDragging = false;
@@ -827,48 +903,40 @@
             const x = touch.clientX;
             const y = touch.clientY;
 
-            if (!isDragging) return; // ← 長押し成立前は何もしない（スクロールはブラウザに任せる）
+            if (!isDragging) return; // 長押し成立前は何もしない
 
-            // ここから下はドラッグ中
             e.preventDefault();
 
-            // 追従（rAFで滑らかに動かすあなたの仕組みを使う）
+            // 追従（pendingX/pendingYが更新される）
             moveDraggedItem(x, y);
 
-            // 指の下の要素から「挿入先」を決めて placeholder を移動
-            const target = document.elementFromPoint(x, y);
-            const card = target ? target.closest('.event-card') : null;
+            // placeholder 更新（通常）
+            updatePlaceholderByPointer(x, y);
 
-            if (!card || card === activeItem || card === placeholder) return;
-
-            const rect = card.getBoundingClientRect();
-            if (y < rect.top + rect.height / 2) {
-                card.before(placeholder);
-            } else {
-                card.after(placeholder);
-            }
+            // ★ 自動スクロール判定（端ならスクロール開始）
+            setAutoScrollByPointer(y);
         }
 
+
         function handleTouchEnd() {
-            // 長押し待ちタイマーを止める（ここ1回だけでOK）
             if (pressTimer) {
                 clearTimeout(pressTimer);
                 pressTimer = null;
             }
 
-            // そもそもドラッグ開始してなかった（ただのタップ/スクロール）なら終了
+            // ★追加：自動スクロール停止
+            stopAutoScrollLoop();
+
             if (!isDragging) {
                 detachPreMoveCancel();
                 activeItem = null;
                 return;
             }
 
-            // ここから「ドラッグ終了」
             isDragging = false;
 
             if (!activeItem) return;
 
-            /* requestAnimationFrame を止める（残像・カクつき防止） */
             if (rafId) {
                 cancelAnimationFrame(rafId);
                 rafId = null;
@@ -880,12 +948,9 @@
                 placeholder.replaceWith(activeItem);
                 placeholder = null;
             } else if (list && activeItem) {
-                // 万一 placeholder が無い場合は末尾に戻す
                 list.appendChild(activeItem);
             }
 
-
-            /* 見た目を完全に元に戻す */
             activeItem.classList.remove('dragging');
 
             activeItem.style.position = '';
@@ -893,9 +958,8 @@
             activeItem.style.top = '';
             activeItem.style.right = '';
             activeItem.style.bottom = '';
-
             activeItem.style.width = '';
-            activeItem.style.height = '';           // ★これ重要（Startで固定してるため）
+            activeItem.style.height = '';
             activeItem.style.zIndex = '';
             activeItem.style.pointerEvents = '';
             activeItem.style.margin = '';
@@ -904,7 +968,6 @@
 
             activeItem = null;
 
-            // document 監視を解除
             document.removeEventListener('touchmove', handleTouchMove);
             document.removeEventListener('touchend', handleTouchEnd);
             document.removeEventListener('touchcancel', handleTouchEnd);
