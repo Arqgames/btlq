@@ -19,10 +19,10 @@
         content="A free browser game where you arrange Bible events in chronological order. Supports Japanese and English." />
     <!-- TODO: 公開URLが確定したらここを書き換え（GitHub PagesのURL） -->
     <!-- 例: https://btlq.github.io/ -->
-    <meta property="og:url" content="https://YOUR_GITHUB_PAGES_URL/" />
+    <meta property="og:url" content="https://arqgames.github.io/" />
 
     <!-- TODO: サムネ画像を置く場合（/og.png など） -->
-    <!-- <meta property="og:image" content="https://YOUR_GITHUB_PAGES_URL/og.png" /> -->
+    <!-- <meta property="og:image" content="https://arqgames.github.io/.png" /> -->
 
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Bible Timeline Quiz" />
@@ -39,6 +39,10 @@
     <!-- フォント / ライブラリ（あなたの現状を維持） -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Google adsense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8810957223833437"
+        crossorigin="anonymous"></script>
 
     <style>
         :root {
@@ -266,6 +270,27 @@
             border-radius: 15px;
             border: 3px dashed var(--accent);
             background: rgba(251, 197, 49, 0.15);
+        }
+
+        /* --- AdSense：箱の外に置く広告枠（箱は広げない） --- */
+        .ad-outside {
+            width: 92%;
+            max-width: 450px;
+            /* .container と同じ */
+            margin: -10px auto 24px;
+            /* 箱の直後に“はさむ”感じ。好みで調整OK */
+            padding: 12px;
+            box-sizing: border-box;
+
+            background: rgba(255, 255, 255, 0.55);
+            border: 2px dashed #ecd4a1;
+            border-radius: 18px;
+        }
+
+        /* 広告は枠の横幅いっぱい */
+        .ad-outside ins.adsbygoogle {
+            display: block;
+            width: 100%;
         }
     </style>
 
@@ -1239,16 +1264,16 @@
     </script>
 
     <footer style="margin-top:40px; padding:20px 0; border-top:1px solid #ddd; font-size:14px; text-align:center;">
-            <a href="./about.html" target="_blank" rel="noopener noreferrer" style="margin:0 10px;">
-                About
-            </a>
-            <a href="./privacy.html" target="_blank" rel="noopener noreferrer" style="margin:0 10px;">
-                Privacy Policy
-            </a>
-            <a href="./contact.html" target="_blank" rel="noopener noreferrer" style="margin:0 10px;">
-                Contact
-            </a>
-        </footer>
+        <a href="./about.html" target="_blank" rel="noopener noreferrer" style="margin:0 10px;">
+            About
+        </a>
+        <a href="./privacy.html" target="_blank" rel="noopener noreferrer" style="margin:0 10px;">
+            Privacy Policy
+        </a>
+        <a href="./contact.html" target="_blank" rel="noopener noreferrer" style="margin:0 10px;">
+            Contact
+        </a>
+    </footer>
 
 </body>
 
