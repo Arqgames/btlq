@@ -299,8 +299,13 @@
 <body>
 
     <div class="container">
-        <div class="top-btn home-btn" onclick="location.reload()"><span class="material-icons">home</span></div>
-        <div class="top-btn lang-switch" onclick="toggleLang()" id="lang-btn">JA</div>
+        <button class="top-btn home-btn" type="button" id="homeBtn" title="Home">
+            <svg width="22" height="22" viewBox="0 0 24 24" style="display:block;">
+                <path d="M12 3.2 3 10.3V21a1 1 0 0 0 1 1h5v-7h6v7h5a1 1 0 0 0 1-1V10.3l-9-7.1z" fill="currentColor" />
+            </svg>
+        </button>
+
+        <button class="top-btn lang-switch" type="button" id="langBtn" title="Language">EN</button>
 
         <div id="screen-setup">
             <div class="header-icon-box"><span class="material-icons header-icon">menu_book</span></div>
@@ -1264,16 +1269,16 @@
     </script>
 
     <footer style="margin-top:40px; padding:20px 0; border-top:1px solid #ddd; font-size:14px; text-align:center;">
-    <a href="/about.html" target="_blank" rel="noopener noreferrer" style="margin:0 10px;">
-        About
-    </a>
-    <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style="margin:0 10px;">
-        Privacy Policy
-    </a>
-    <a href="/contact.html" target="_blank" rel="noopener noreferrer" style="margin:0 10px;">
-        Contact
-    </a>
-</footer>
+        <a href="/about.html" target="_blank" rel="noopener noreferrer" style="margin:0 10px;">
+            About
+        </a>
+        <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style="margin:0 10px;">
+            Privacy Policy
+        </a>
+        <a href="/contact.html" target="_blank" rel="noopener noreferrer" style="margin:0 10px;">
+            Contact
+        </a>
+    </footer>
 
 
 </body>
